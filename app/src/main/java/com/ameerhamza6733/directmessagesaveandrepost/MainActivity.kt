@@ -2,17 +2,24 @@ package com.ameerhamza6733.directmessagesaveandrepost
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.support.design.widget.FloatingActionButton
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.CardView
 import android.util.Log
+import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import com.artjimlop.altex.AltexImageDownloader
+import com.artjimlop.altex.AltexImageDownloader.ImageError
+import com.artjimlop.altex.AltexImageDownloader.OnImageLoaderListener
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.daimajia.numberprogressbar.OnProgressBarListener
 import com.golshadi.majid.core.DownloadManagerPro
@@ -52,21 +59,45 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
 
     override fun OnDownloadFinished(taskId: Long) {
         Log.d(TAG, "OnDownloadFinished")
-        runOnUiThread {
-            mNumberBar.progress = 100
-            mFabShareButton.visibility = 1
-        }
     }
 
     private fun shareIntent() {
         try {
-            val repor: ReportStructure = dm.singleDownloadStatus(taskToken);
-            val int: InstaIntent = InstaIntent()
-            int.createInstagramIntent("video/*", repor.saveAddress, this@MainActivity)
+            if(mNumberBar.progress == 100){
+                if (mPost.medium.equals("image"))
+                    shareImageIntentToInstagram()
+                else
+                    shareVideoIntentToInstagram()
+            }else{
+                Toast.makeText(this@MainActivity,"downloading sill in progress ",Toast.LENGTH_SHORT).show()
+            }
+
         } catch (ex: Exception) {
             Toast.makeText(this@MainActivity, "some thing working while sharing Error: " + ex.message, Toast.LENGTH_LONG).show()
         }
 
+
+    }
+
+    private fun shareVideoIntentToInstagram() {
+        val repor: ReportStructure = dm.singleDownloadStatus(taskToken);
+        val int: InstaIntent = InstaIntent()
+        int.createInstagramIntent("video/*", repor.saveAddress, this@MainActivity)
+    }
+
+    private fun shareImageIntentToInstagram() {
+        try {
+            val bitmapPath: String = MediaStore.Images.Media.insertImage(getContentResolver(), mBitMapImageToShare, "title", null);
+            val bitmapUri: Uri = Uri.parse(bitmapPath)
+            val intent: Intent = Intent(Intent.ACTION_SEND)
+            Log.d(TAG,"uri="+bitmapUri.toString())
+            intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_STREAM, bitmapUri);
+            intent.setPackage("com.instagram.android")
+            startActivity(intent)
+        }catch (e : Exception){
+
+        }
 
     }
 
@@ -79,6 +110,10 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
     }
 
     override fun OnDownloadCompleted(taskId: Long) {
+        runOnUiThread {
+            mNumberBar.progress = 100
+            mFabShareButton.visibility = 1
+        }
         Log.d(TAG, "OnDownloadCompleted") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -95,10 +130,11 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
     private lateinit var mNumberBar: NumberProgressBar
     private lateinit var mFabShareButton: FloatingActionButton
     private lateinit var mCardView: CardView
+    private lateinit var mProgressBar: ProgressBar
 
     private lateinit var dm: DownloadManagerPro
     private var taskToken: Int = -1
-
+    private lateinit var mBitMapImageToShare: Bitmap
     val mPost = post()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,6 +164,8 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
         if (!mHashTagTextView.text.isEmpty()) {
             val clipbordHelper: ClipBrodHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(this@MainActivity, mHashTagTextView.text.toString())
+        }else{
+            Toast.makeText(this@MainActivity,"No Hash tag not find in this post",Toast.LENGTH_SHORT).show()
         }
 
     }
@@ -157,12 +195,22 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
         mNumberBar = findViewById(R.id.number_progress_bar) as NumberProgressBar
         mFabShareButton = findViewById(R.id.floatingActionButtonShare) as FloatingActionButton
         mCardView = findViewById(R.id.cardView) as CardView
+        mProgressBar = findViewById(R.id.progressBar) as ProgressBar
 
     }
 
     fun checkBuildNO() {
         if (Build.VERSION.SDK_INT > 22) {
+            if(checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
             askPermistion()
+            else{
+                val msg: String = mEditTextInputURl.text.toString()
+
+                if (!msg.equals(""))
+                    grabData(mEditTextInputURl.text.toString()).execute()
+
+            }
+
         } else {
             val msg: String = mEditTextInputURl.text.toString()
 
@@ -196,7 +244,9 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
 
         override fun onPreExecute() {
             super.onPreExecute()
-
+            mProgressBar.progress =100
+            mProgressBar.visibility = View.VISIBLE
+            mCardView.visibility = View.INVISIBLE
             hideKeybord()
         }
 
@@ -235,15 +285,18 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
         }
 
         private fun UpdateUI() {
+            mProgressBar.visibility = View.INVISIBLE
+
             mCardView.visibility = 1
             mHashTagTextView.setText(mPost.hashTags)
-            mDescription.setText(mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length))
+            if (!mPost.content.isNullOrEmpty())
+                mDescription.setText(mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length))
             Picasso.with(this@MainActivity).load(mPost.imageURL).into(mImage)
         }
 
         private fun intiDownloader() {
 
-
+            mFabShareButton.visibility = 0
             try {
                 taskToken = dm.addTask(mPost.postDownloadingName.replace("/", ""), mPost.videoURL, true, false)
                 Toast.makeText(this@MainActivity, "Downloading start", Toast.LENGTH_SHORT).show()
@@ -257,22 +310,28 @@ class MainActivity : AppCompatActivity(), DownloadManagerListener, OnProgressBar
         }
 
         private fun downloadImage() {
-            AltexImageDownloader.writeToDisk(this@MainActivity, mPost.imageURL, this@MainActivity.packageName)
+            Log.d(TAG, " downloadImage")
+            // var download :AltexImageDownloader =  AltexImageDownloader.writeToDisk(this@MainActivity, mPost.imageURL, this@MainActivity.packageName)
             mNumberBar.progress = 0
-            AltexImageDownloader(object : AltexImageDownloader.OnImageLoaderListener {
-                override fun onError(error: AltexImageDownloader.ImageError?) {
+            val download: AltexImageDownloader = AltexImageDownloader(object : OnImageLoaderListener {
+                override fun onError(error: ImageError) {
                     Toast.makeText(this@MainActivity, "Error " + error.toString(), Toast.LENGTH_SHORT).show()
                 }
 
                 override fun onProgressChange(percent: Int) {
                     mNumberBar.incrementProgressBy(1)
+                    Log.d(TAG, " onProgressChange" + percent)
                 }
 
-                override fun onComplete(result: Bitmap?) {
-                    Log.d(TAG, "onComplete downlaoding image")
+                override fun onComplete(result: Bitmap) {
+                    Log.d(TAG, "onImageComplate " + result.toString())
+                    mFabShareButton.visibility = View.VISIBLE
+                    mNumberBar.progress = 100
+                    this@MainActivity.mBitMapImageToShare = result
                 }
 
             })
+            download.download(mPost.imageURL, true)
 
         }
     }

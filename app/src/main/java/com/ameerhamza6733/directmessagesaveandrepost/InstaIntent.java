@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.golshadi.majid.core.DownloadManagerPro;
 import com.golshadi.majid.report.ReportStructure;
@@ -21,20 +22,27 @@ public class InstaIntent {
 
         // Create the new Intent using the 'Send' action.
 
-        Intent share = new Intent(Intent.ACTION_SEND);
+       try{
+           Intent share = new Intent(android.content.Intent.ACTION_SEND);
 
-        // Set the MIME type
-        share.setType(type);
+           // Set the MIME type
+           share.setType(type);
 
-        // Create the URI from the media
-        File media = new File(mediaPath);
-        Uri uri = Uri.fromFile(media);
+           // Create the URI from the media
+           File media = new File(mediaPath);
+           Uri uri = Uri.fromFile(media);
 
-        // Add the URI to the Intent.
-        share.putExtra(Intent.EXTRA_STREAM, uri);
+           // Add the URI to the Intent.
+           Log.d("InstaIntent","URi"+uri.toString());
+           share.putExtra(Intent.EXTRA_STREAM, uri);
 
-        // Broadcast the Intent.
-        context.startActivity(Intent.createChooser(share, "Share to"));
+           // Broadcast the Intent.
+           share.setPackage("com.instagram.android");
+           context.startActivity(share);
+       }catch (Exception e){
+           Toast.makeText(context,"Some thing wrong error : "+e.getMessage(),Toast.LENGTH_SHORT).show();
+       }
 
     }
+
 }
