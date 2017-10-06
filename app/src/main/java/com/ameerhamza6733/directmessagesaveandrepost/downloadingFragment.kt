@@ -46,9 +46,10 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     private var TAG = "MainActivityTAG"
     override fun OnDownloadStarted(taskId: Long) {
-
+        this@downloadingFragment.activity.runOnUiThread(Runnable {
             mNumberBar.progress = 0
             mFabShareButton.visibility = 0
+        })
 
         Log.d(TAG, "OnDownloadStarted")
     }
@@ -59,12 +60,34 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     override fun onDownloadProcess(taskId: Long, percent: Double, downloadedLength: Long) {
 
-         mNumberBar.incrementProgressBy(1)
+        this@downloadingFragment.activity.runOnUiThread(Runnable { mNumberBar.incrementProgressBy(1) })
         Log.d(TAG, "onDownloadProcess" + percent)
     }
 
     override fun OnDownloadFinished(taskId: Long) {
         Log.d(TAG, "OnDownloadFinished")
+    }
+
+
+    override fun OnDownloadRebuildStart(taskId: Long) {
+        Log.d(TAG, "OnDownloadRebuildStart") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun OnDownloadRebuildFinished(taskId: Long) {
+        Log.d(TAG, "OnDownloadRebuildFinished") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun OnDownloadCompleted(taskId: Long) {
+        activity.runOnUiThread {
+            mNumberBar.progress = 100
+            mFabShareButton.visibility = 1
+            saveToPraf(mPost)
+        }
+        Log.d(TAG, "OnDownloadCompleted") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun connectionLost(taskId: Long) {
+        Log.d(TAG, "connectionLost") //To change body of created functions use File | Settings | File Templates.
     }
 
     private fun shareIntent() {
@@ -107,25 +130,6 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     }
 
-    override fun OnDownloadRebuildStart(taskId: Long) {
-        Log.d(TAG, "OnDownloadRebuildStart") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun OnDownloadRebuildFinished(taskId: Long) {
-        Log.d(TAG, "OnDownloadRebuildFinished") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun OnDownloadCompleted(taskId: Long) {
-        activity.runOnUiThread {
-            mNumberBar.progress = 100
-            mFabShareButton.visibility = 1
-        }
-        Log.d(TAG, "OnDownloadCompleted") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun connectionLost(taskId: Long) {
-        Log.d(TAG, "connectionLost") //To change body of created functions use File | Settings | File Templates.
-    }
 
     private lateinit var mEditTextInputURl: EditText
     private lateinit var mCheckAndSaveButton: Button
@@ -164,7 +168,6 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         mFabShareButton.setOnClickListener({ shareIntent() })
         mCopyHashTagButton.setOnClickListener({ copyHashTagToClipBord() })
     }
-
 
 
 //    private fun storeTopreferences() {
@@ -218,7 +221,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
 
-    fun staupUI( view: View) {
+    fun staupUI(view: View) {
         mEditTextInputURl = view.findViewById<EditText>(R.id.URL_Input_edit_text) as EditText
         mCheckAndSaveButton = view.findViewById<Button>(R.id.chack_and_save_post) as Button
         mImage = view.findViewById<ImageView>(R.id.imageView) as ImageView
@@ -300,9 +303,9 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                         mPost.videoURL = meta.attr("content")
                     if (meta.attr("name").equals("medium"))
                         mPost.medium = meta.attr("content")
-                    if (meta.attr("property").equals("og:url")){
+                    if (meta.attr("property").equals("og:url")) {
                         mPost.postID = meta.attr("content").replace("https://www.instagram.com/p/", "")
-                        mPost.postID = mPost.postID.replace("/","")
+                        mPost.postID = mPost.postID.replace("/", "")
                     }
 
 
@@ -311,7 +314,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
             } catch (ex: Exception) {
                 ex.printStackTrace()
-                activity.runOnUiThread({     Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
+                activity.runOnUiThread({
+                    Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
 
                 })
 
@@ -321,11 +325,11 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
-            Log.d("dec", mPost.content + "mPost.imageURL= " + mPost.imageURL + "mPost.medium " + mPost.medium+" mPost.postDownloadingName  "+mPost.postID)
-            if(!mPost.imageURL.isNullOrEmpty()){
+            Log.d("dec", mPost.content + "mPost.imageURL= " + mPost.imageURL + "mPost.medium " + mPost.medium + " mPost.postDownloadingName  " + mPost.postID)
+            if (!mPost.imageURL.isNullOrEmpty()) {
                 UpdateUI()
                 intiDownloader()
-                saveToPraf(mPost)
+
             }
 
         }
@@ -336,8 +340,11 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             mCardView.visibility = 1
             mHashTagTextView.setText(mPost.hashTags)
             try {
-                if (!mPost.content.isNullOrEmpty())
-                    mDescription.setText(mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length))
+                if (!mPost.content.isNullOrEmpty()){
+                    mPost.content = mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length)
+                    mDescription.text = mPost.content
+                }
+
 
             } catch (Ex: Exception) {
 
@@ -379,6 +386,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                     mFabShareButton.visibility = View.VISIBLE
                     mNumberBar.progress = 100
                     mBitMapImageToShare = result
+                    saveToPraf(mPost)
                 }
 
             })
@@ -390,7 +398,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private fun saveToPraf(mPost: post) {
         try {
             SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);
-        }catch (ex :Exception ){
+        } catch (ex: Exception) {
 
         }
     }
