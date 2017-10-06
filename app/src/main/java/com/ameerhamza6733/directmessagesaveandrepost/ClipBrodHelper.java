@@ -5,6 +5,7 @@ import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
 /**
  * Created by AmeerHamza on 9/17/2017.
@@ -31,6 +32,7 @@ public class ClipBrodHelper {
     }
 
     public void WriteToClipBord(Context context , String data){
+        Toast.makeText(context,"hash tag copyted to clip bord",Toast.LENGTH_SHORT).show();
         ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("text label", data);
         clipboard.setPrimaryClip(clip);

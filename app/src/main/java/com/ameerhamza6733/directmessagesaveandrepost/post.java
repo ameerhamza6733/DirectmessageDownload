@@ -1,7 +1,5 @@
 package com.ameerhamza6733.directmessagesaveandrepost;
 
-import java.util.List;
-
 /**
  * Created by AmeerHamza on 9/15/2017.
  */
@@ -12,7 +10,8 @@ public class post {
     private StringBuilder hashTags;
     private String content;
     private String medium;
-    private String PostDownloadingName;
+    private String postID;
+
 
 
 
@@ -20,13 +19,14 @@ public class post {
 
     }
 
-    public String getPostDownloadingName() {
-        return PostDownloadingName;
+    public String getPostID() {
+        return postID;
     }
 
-    public void setPostDownloadingName(String postDownloadingName) {
-        PostDownloadingName = postDownloadingName;
+    public void setPostID(String postDownloadingName) {
+        postID = postDownloadingName;
     }
+
 
     public void setImageURL(String imageURL) {
         this.imageURL = imageURL;

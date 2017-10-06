@@ -1,1 +1,2 @@
-include ':app'
+include ':app', ':dachshundtablayout', ':easy_sharedpreference_library'
+include ':standOut'

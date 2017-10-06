@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/DirectmessageDownload.iml" filepath="$PROJECT_DIR$/DirectmessageDownload.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/dachshundtablayout/dachshundtablayout.iml" filepath="$PROJECT_DIR$/dachshundtablayout/dachshundtablayout.iml" />
+      <module fileurl="file://$PROJECT_DIR$/easy_sharedpreference_library/easy_sharedpreference_library.iml" filepath="$PROJECT_DIR$/easy_sharedpreference_library/easy_sharedpreference_library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/standOut/standOut.iml" filepath="$PROJECT_DIR$/standOut/standOut.iml" />
     </modules>
   </component>
 </project>
