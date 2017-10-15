@@ -11,6 +11,7 @@ public class post {
     private String content;
     private String medium;
     private String postID;
+    private String pathToStorage;
 
 
 
@@ -65,5 +66,13 @@ public class post {
 
     public void setMedium(String medium) {
         this.medium = medium;
+    }
+
+    public void setPathToStorage(String pathToStorage) {
+        this.pathToStorage = pathToStorage;
+    }
+
+    public String getPathToStorage() {
+        return pathToStorage;
     }
 }

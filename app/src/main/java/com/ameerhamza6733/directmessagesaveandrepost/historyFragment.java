@@ -1,20 +1,21 @@
 package com.ameerhamza6733.directmessagesaveandrepost;
 
 import android.os.Bundle;
-
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.widget.RadioButton;
+import android.widget.Toast;
 
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ import java.util.Map;
  * Created by AmeerHamza on 10/6/2017.
  */
 
-public class historyFragment   extends Fragment {
+public class historyFragment extends Fragment {
 
     private static final String TAG = "RecyclerViewFragment";
     private static final String KEY_LAYOUT_MANAGER = "layoutManager";
@@ -47,7 +48,7 @@ public class historyFragment   extends Fragment {
 
         // Initialize dataset, this data would usually come from a local content provider or
         // remote server.
-        initDataset();
+
     }
 
     @Override
@@ -73,16 +74,23 @@ public class historyFragment   extends Fragment {
         }
         setRecyclerViewLayoutManager(mCurrentLayoutManagerType);
 
-        mAdapter = new CustomAdapter(mDataset);
-        // Set CustomAdapter as the adapter for RecyclerView.
-        mRecyclerView.setAdapter(mAdapter);
+
         // END_INCLUDE(initializeRecyclerView)
 
 
-
-
-
         return rootView;
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (isVisibleToUser)
+            try {
+                initDataset();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(getActivity(),"unable to load history if you just update your app then make sure uninstall this app first then reinstall ",Toast.LENGTH_LONG).show();
+            }
     }
 
     /**
@@ -125,16 +133,35 @@ public class historyFragment   extends Fragment {
     }
 
     /**
-     * Generates Strings for RecyclerView's adapter. This data would usually come
-     * from a local content provider or remote server.
+     * Generates Strings for RecyclerView's adapter. This data come
+     * from a SharedPreferencesManager.
      */
-    private void initDataset() {
+    private void initDataset() throws Exception {
         mDataset = new ArrayList<>();
         Map<String, ?> allEntries = SharedPreferencesManager.getInstance().getAllKeys();
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             if (entry == null || entry.getValue() == null) continue;
             Log.e("SharedPreferenceManager", entry.getKey() + ": " + entry.getValue().toString());
-            mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(),post.class));
+
+            mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), post.class));
         }
+        removeIFPostNotExsitInDevice();
+    }
+
+    private void removeIFPostNotExsitInDevice() throws Exception{
+        Iterator itr = mDataset.iterator();
+        while (itr.hasNext()) {
+            post mPost = (post) itr.next();
+            if (mPost.getMedium().equalsIgnoreCase("image") || (mPost.getMedium().equalsIgnoreCase("video") ))
+                if(new File(mPost.getPathToStorage()).exists()){
+
+               } else {
+                itr.remove();
+                mDataset.remove(mPost);
+                SharedPreferencesManager.getInstance().remove(mPost.getPostID());
+            }
+        }
+        mAdapter = new CustomAdapter(mDataset);
+        mRecyclerView.setAdapter(mAdapter);
     }
 }

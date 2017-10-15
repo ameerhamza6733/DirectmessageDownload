@@ -6,11 +6,7 @@ import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.golshadi.majid.core.DownloadManagerPro;
-import com.golshadi.majid.report.ReportStructure;
-
 import java.io.File;
-import java.util.List;
 
 /**
  * Created by AmeerHamza on 9/17/2017.
@@ -18,30 +14,32 @@ import java.util.List;
 
 public class InstaIntent {
 
-    public  void createInstagramIntent(String type, String mediaPath, Context context) {
+    public void createVideoInstagramIntent(String type, String mediaPath, Context context, boolean repost) {
 
         // Create the new Intent using the 'Send' action.
 
-       try{
-           Intent share = new Intent(android.content.Intent.ACTION_SEND);
+        try {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType(type);
+            Uri uri = null;
+            File media = new File(mediaPath);
+            uri = Uri.fromFile(media);
+            if (uri != null) {
+                Log.d("InstaIntent", "URi" + uri.toString());
+            }
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            share.putExtra(Intent.EXTRA_SUBJECT, "happy valentine day");
+            if (repost) {
+                share.setPackage("com.instagram.android");
+                context.startActivity(share);
+            } else
+                context.startActivity(Intent.createChooser(share, "Share to"));
 
-           // Set the MIME type
-           share.setType(type);
 
-           // Create the URI from the media
-           File media = new File(mediaPath);
-           Uri uri = Uri.fromFile(media);
-
-           // Add the URI to the Intent.
-           Log.d("InstaIntent","URi"+uri.toString());
-           share.putExtra(Intent.EXTRA_STREAM, uri);
-
-           // Broadcast the Intent.
-           share.setPackage("com.instagram.android");
-           context.startActivity(share);
-       }catch (Exception e){
-           Toast.makeText(context,"Some thing wrong error : "+e.getMessage(),Toast.LENGTH_SHORT).show();
-       }
+        } catch (Exception e) {
+            Toast.makeText(context, "Some thing wrong error : " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
 
     }
 

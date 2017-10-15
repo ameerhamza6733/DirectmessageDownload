@@ -6,7 +6,7 @@ package com.ameerhamza6733.directmessagesaveandrepost;
 
 
 
-import android.support.design.widget.FloatingActionButton;
+
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,7 +15,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.github.clans.fab.FloatingActionButton;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
@@ -35,6 +37,7 @@ public static class ViewHolder extends RecyclerView.ViewHolder {
     private final FloatingActionButton shareButton;
     private final Button mCopyHashTag;
     private final TextView mDir;
+    private final FloatingActionButton repostButton;
 
     public ViewHolder(View v) {
         super(v);
@@ -50,6 +53,7 @@ public static class ViewHolder extends RecyclerView.ViewHolder {
         shareButton = v.findViewById(R.id.floatingActionButtonShare);
         mCopyHashTag = v.findViewById(R.id.copy_hash_tag_button);
         mDir = v.findViewById(R.id.textView_description);
+        repostButton = v.findViewById(R.id.floatingActionButtonRepost);
     }
 
     public TextView getTextView() {
@@ -70,6 +74,10 @@ public static class ViewHolder extends RecyclerView.ViewHolder {
 
     public Button getmCopyHashTag() {
         return mCopyHashTag;
+    }
+
+    public FloatingActionButton getRepostButton() {
+        return repostButton;
     }
 }
     // END_INCLUDE(recyclerViewSampleViewHolder)
@@ -103,17 +111,49 @@ public static class ViewHolder extends RecyclerView.ViewHolder {
 
         // Get element from your dataset at this position and replace the contents of the view
         // with that element
-        viewHolder.getTextView().setText(mDataSet.get(position).getHashTags());
-        viewHolder.getmDir().setText(mDataSet.get(position).getContent());
-        Picasso.with(viewHolder.getTextView().getContext()).load(mDataSet.get(position).getImageURL()).into(viewHolder.getImageView());
-        viewHolder.getmCopyHashTag().setOnClickListener(new View.OnClickListener() {
+          viewHolder.getTextView().setText(mDataSet.get(viewHolder.getAdapterPosition()).getHashTags());
+            viewHolder.getmDir().setText(mDataSet.get(viewHolder.getAdapterPosition()).getContent());
+            Picasso.with(viewHolder.getTextView().getContext()).load(mDataSet.get(viewHolder.getAdapterPosition()).getImageURL()).into(viewHolder.getImageView());
+            viewHolder.getmCopyHashTag().setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                   // if(mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString()!=null && !mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString().isEmpty()){
+                  try {
+                      new ClipBrodHelper().WriteToClipBord(view.getContext(),mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString());
+
+                  }catch (NullPointerException n){
+                      Toast.makeText(view.getContext(),"NO Hash tag found for this post",Toast.LENGTH_SHORT).show();
+                  }catch (Exception ex){
+                      Toast.makeText(view.getContext(),"Some thing wrong unable to copy hash tag to clipbord",Toast.LENGTH_SHORT).show();
+                  }
+                }
+            });
+            viewHolder.getShareButton().setOnClickListener(new View.OnClickListener() {
+
+                @Override
+                public void onClick(View view) {
+                    if(mDataSet.get(viewHolder.getAdapterPosition()).getMedium().equalsIgnoreCase("video")){
+                        new InstaIntent().createVideoInstagramIntent("video/*",mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(),view.getContext(),false);
+                    }else {
+                        new InstaIntent().createVideoInstagramIntent("image/*",mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(),view.getContext(),false);
+
+                    }
+                }
+            });
+        viewHolder.getRepostButton().setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View view) {
-                if(mDataSet.get(position).getHashTags().length()>0){
-                    new ClipBrodHelper().WriteToClipBord(view.getContext(),mDataSet.get(position).getHashTags().toString());
+                if(mDataSet.get(viewHolder.getAdapterPosition()).getMedium().equalsIgnoreCase("video")){
+                    new InstaIntent().createVideoInstagramIntent("video/*",mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(),view.getContext(),true);
+                }else {
+                    new InstaIntent().createVideoInstagramIntent("image/*",mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(),view.getContext(),true);
+
                 }
             }
         });
+
 
     }
     // END_INCLUDE(recyclerViewOnBindViewHolder)

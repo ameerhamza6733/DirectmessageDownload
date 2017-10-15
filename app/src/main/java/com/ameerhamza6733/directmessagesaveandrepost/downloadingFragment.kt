@@ -10,7 +10,6 @@ import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
 import android.support.v7.widget.CardView
 import android.util.Log
@@ -28,13 +27,14 @@ import com.golshadi.majid.report.listener.DownloadManagerListener
 import com.google.firebase.FirebaseApp
 import com.google.firebase.iid.FirebaseInstanceId
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
+
 import com.squareup.picasso.Picasso
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
-
+import com.github.clans.fab.FloatingActionButton
 /**
  * Created by AmeerHamza on 10/6/2017.
  */
@@ -46,10 +46,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     private var TAG = "MainActivityTAG"
     override fun OnDownloadStarted(taskId: Long) {
-        this@downloadingFragment.activity.runOnUiThread(Runnable {
-            mNumberBar.progress = 0
-            mFabShareButton.visibility = 0
-        })
+        this@downloadingFragment.activity.runOnUiThread({ mNumberBar.progress = 0 })
 
         Log.d(TAG, "OnDownloadStarted")
     }
@@ -60,7 +57,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     override fun onDownloadProcess(taskId: Long, percent: Double, downloadedLength: Long) {
 
-        this@downloadingFragment.activity.runOnUiThread(Runnable { mNumberBar.incrementProgressBy(1) })
+        this@downloadingFragment.activity.runOnUiThread({ mNumberBar.incrementProgressBy(1) })
         Log.d(TAG, "onDownloadProcess" + percent)
     }
 
@@ -80,7 +77,9 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     override fun OnDownloadCompleted(taskId: Long) {
         activity.runOnUiThread {
             mNumberBar.progress = 100
-            mFabShareButton.visibility = 1
+            mFabRepostButton.visibility = 1
+            val repor: ReportStructure = dm.singleDownloadStatus(taskToken);
+            mPost.pathToStorage =repor.saveAddress
             saveToPraf(mPost)
         }
         Log.d(TAG, "OnDownloadCompleted") //To change body of created functions use File | Settings | File Templates.
@@ -90,13 +89,13 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         Log.d(TAG, "connectionLost") //To change body of created functions use File | Settings | File Templates.
     }
 
-    private fun shareIntent() {
+    private fun shareIntent(repost : Boolean) {
         try {
             if (mNumberBar.progress == 100) {
                 if (mPost.medium.equals("image"))
-                    shareImageIntentToInstagram()
+                    shareImageIntentToInstagram(repost)
                 else
-                    shareVideoIntentToInstagram()
+                    shareVideoIntentToInstagram(repost)
             } else {
                 Toast.makeText(activity, "downloading sill in progress ", Toast.LENGTH_SHORT).show()
             }
@@ -108,22 +107,27 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     }
 
-    private fun shareVideoIntentToInstagram() {
+    private fun shareVideoIntentToInstagram(repost: Boolean) {
         val repor: ReportStructure = dm.singleDownloadStatus(taskToken);
         val int: InstaIntent = InstaIntent()
-        int.createInstagramIntent("video/*", repor.saveAddress, activity)
+        int.createVideoInstagramIntent("video/*", repor.saveAddress, activity,repost)
     }
 
-    private fun shareImageIntentToInstagram() {
+    private fun shareImageIntentToInstagram(repost : Boolean) {
         try {
             val bitmapPath: String = MediaStore.Images.Media.insertImage(context.getContentResolver(), mBitMapImageToShare, "title", null);
             val bitmapUri: Uri = Uri.parse(bitmapPath)
-            val intent: Intent = Intent(Intent.ACTION_SEND)
+            val intent = Intent(Intent.ACTION_SEND)
             Log.d(TAG, "uri=" + bitmapUri.toString())
             intent.setType("image/*");
             intent.putExtra(Intent.EXTRA_STREAM, bitmapUri);
-            intent.setPackage("com.instagram.android")
-            startActivity(intent)
+            if(repost){
+                intent.setPackage("com.instagram.android")
+                startActivity(intent)
+            }
+            else
+                startActivity(Intent.createChooser(intent, "Share to"));
+
         } catch (e: Exception) {
 
         }
@@ -138,7 +142,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mCopyHashTagButton: Button
     private lateinit var mDescription: TextView
     private lateinit var mNumberBar: NumberProgressBar
-    private lateinit var mFabShareButton: FloatingActionButton
+    private lateinit var mFabRepostButton: FloatingActionButton
+    private lateinit var mFabShareButton : FloatingActionButton
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
 
@@ -146,54 +151,37 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private var taskToken: Int = -1
     private lateinit var mBitMapImageToShare: Bitmap
     val mPost = post()
+    lateinit var postKeyFromShardPraf : String
 
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
 
         Log.d(TAG, "onCreate")
+
         staupUI(view)
         return view
     }
 
-    override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        FirebaseApp.initializeApp(activity)
-        FirebaseInstanceId.getInstance().token
-        copyDataFromClipBrod()
-        setUpListerners()
-
-        dm = DownloadManagerPro(activity)
-        dm.init("DMinstaDownload/", 12, this)
-        mFabShareButton.setOnClickListener({ shareIntent() })
-        mCopyHashTagButton.setOnClickListener({ copyHashTagToClipBord() })
-    }
-
-
-//    private fun storeTopreferences() {
-//        try {
-//            val preferences: SharedPreferences = application.getSharedPreferences(instructionActivity.KEY_SHARED_PRFE_NAME, Context.MODE_PRIVATE);
-//            val first = preferences.getBoolean(instructionActivity.KEY_SHARED_PREF_IS_FIRST_TIME, true)
-//            if (first) {
-//                val intent = Intent(this, instructionActivity::class.java);
-//                startActivity(intent)
-//            } else
-//                return
-//        } catch (ex: Exception) {
-//            ex.printStackTrace()
-//        }
-//
-//    }
 
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume")
+        FirebaseApp.initializeApp(activity)
+        FirebaseInstanceId.getInstance().token
+        copyDataFromClipBrod()
+        setUpListerners()
+        dm = DownloadManagerPro(activity)
+        dm.init("DMinstaDownload/", 12, this)
+        mFabRepostButton.setOnClickListener({ shareIntent(true) })
+        mFabShareButton.setOnClickListener ({ shareIntent(false) })
+        mCopyHashTagButton.setOnClickListener({ copyHashTagToClipBord() })
     }
 
 
     private fun copyHashTagToClipBord() {
         if (!mHashTagTextView.text.isEmpty()) {
-            val clipbordHelper: ClipBrodHelper = ClipBrodHelper()
+            val clipbordHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
         } else {
             Toast.makeText(activity, "No Hash tag not find in this post", Toast.LENGTH_SHORT).show()
@@ -229,6 +217,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         mDescription = view.findViewById<TextView>(R.id.textView_description) as TextView
         mCopyHashTagButton = view.findViewById<Button>(R.id.copy_hash_tag_button) as Button
         mNumberBar = view.findViewById<NumberProgressBar>(R.id.number_progress_bar) as NumberProgressBar
+        mFabRepostButton = view.findViewById<FloatingActionButton>(R.id.floatingActionButtonRepost) as com.github.clans.fab.FloatingActionButton
         mFabShareButton = view.findViewById<FloatingActionButton>(R.id.floatingActionButtonShare) as FloatingActionButton
         mCardView = view.findViewById<CardView>(R.id.cardView) as CardView
         mProgressBar = view.findViewById<ProgressBar>(R.id.progressBar) as ProgressBar
@@ -244,15 +233,22 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 val msg: String = mEditTextInputURl.text.toString()
 
                 if (!msg.equals(""))
-                    grabData(mEditTextInputURl.text.toString()).execute()
-
+                    if(!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
+                        grabData(mEditTextInputURl.text.toString()).execute()
+                    else{
+                        mProgressBar.visibility =View.INVISIBLE
+                    }
             }
 
         } else {
             val msg: String = mEditTextInputURl.text.toString()
 
             if (!msg.equals(""))
-                grabData(mEditTextInputURl.text.toString()).execute()
+                if(!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
+                    grabData(mEditTextInputURl.text.toString()).execute()
+                else{
+                    mProgressBar.visibility =View.INVISIBLE
+                }
         }
     }
 
@@ -265,7 +261,11 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                         val msg: String = mEditTextInputURl.text.toString()
 
                         if (!msg.equals(""))
+                            if(!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
                             grabData(mEditTextInputURl.text.toString()).execute()
+                            else{
+                                mProgressBar.visibility =View.INVISIBLE
+                            }
                         //  grabData(mEditTextInputURl.text.toString()).execute()
                     }
 
@@ -275,18 +275,47 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 }).build().request()
     }
 
+    private  fun checkIFPosAllreadyDownloaded(toString: String): Boolean {
 
+        try {
+            var tempPostID = toString.replace("https://www.instagram.com/p/", "")
+            tempPostID =tempPostID.replace("/", "")
+
+            val allEntries = SharedPreferencesManager.getInstance().allKeys
+            for (entry in allEntries.entries) {
+                if (entry == null || entry.value == null) continue
+                Log.e("SharedPreferenceManager", entry.key + ": " + entry.value.toString())
+
+                if(tempPostID.equals(entry.key)){
+                    Toast.makeText(activity,"post already downloaded",Toast.LENGTH_SHORT).show()
+                    postKeyFromShardPraf=entry.value.toString()
+
+                    return true
+                }
+
+            }
+        }catch (ex :Exception){
+
+            return false
+        }
+        return false
+    }
     inner class grabData(val ConnURL: String) : AsyncTask<Void, Void, String>() {
         val mHashTags = StringBuilder()
+        var isSomeThingWrong = false
+
 
         override fun onPreExecute() {
             super.onPreExecute()
             Log.d(TAG, "url =" + ConnURL)
-            mProgressBar.progress = 100
-            mProgressBar.visibility = View.VISIBLE
-            mCardView.visibility = View.INVISIBLE
-            hideKeybord()
+             mProgressBar.progress = 100
+                mProgressBar.visibility = View.VISIBLE
+                mCardView.visibility = View.INVISIBLE
+                hideKeybord()
+
         }
+
+
 
         override fun doInBackground(vararg p0: Void?): String {
             try {
@@ -316,6 +345,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 ex.printStackTrace()
                 activity.runOnUiThread({
                     Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
+                   isSomeThingWrong=true
 
                 })
 
@@ -326,11 +356,14 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
             Log.d("dec", mPost.content + "mPost.imageURL= " + mPost.imageURL + "mPost.medium " + mPost.medium + " mPost.postDownloadingName  " + mPost.postID)
-            if (!mPost.imageURL.isNullOrEmpty()) {
+
+            if (!isSomeThingWrong) {
                 UpdateUI()
                 intiDownloader()
 
-            }
+            }else
+                mProgressBar.visibility = View.INVISIBLE
+
 
         }
 
@@ -340,26 +373,33 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             mCardView.visibility = 1
             mHashTagTextView.setText(mPost.hashTags)
             try {
-                if (!mPost.content.isNullOrEmpty()){
+                if (!mPost.content.isNullOrEmpty() && isContainsColan()){
                     mPost.content = mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length)
                     mDescription.text = mPost.content
                 }
 
-
+                Picasso.with(activity).load(mPost.imageURL).into(mImage)
             } catch (Ex: Exception) {
 
+                Ex.printStackTrace()
             }
-            Picasso.with(activity).load(mPost.imageURL).into(mImage)
+
+
         }
+
+        private fun isContainsColan(): Boolean = mPost.content.contains(":")
 
         private fun intiDownloader() {
 
-            mFabShareButton.visibility = 0
+            mFabRepostButton.visibility = 0
             try {
-                taskToken = dm.addTask(mPost.postID, mPost.videoURL, true, false)
+
                 Toast.makeText(activity, "Downloading start", Toast.LENGTH_SHORT).show()
-                if (mPost.medium != "image")
+                if (mPost.medium != "image"){
+                    taskToken = dm.addTask(mPost.postID, mPost.videoURL, true, false)
                     dm.startDownload(taskToken)
+                }
+
                 else
                     downloadImage()
             } catch (ex: Exception) {
@@ -369,7 +409,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         private fun downloadImage() {
             Log.d(TAG, " downloadImage")
-            // var download :AltexImageDownloader =  AltexImageDownloader.writeToDisk(this@MainActivity, mPost.imageURL, this@MainActivity.packageName)
+
             mNumberBar.progress = 0
             val download: AltexImageDownloader = AltexImageDownloader(object : AltexImageDownloader.OnImageLoaderListener {
                 override fun onError(error: AltexImageDownloader.ImageError) {
@@ -382,19 +422,29 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 }
 
                 override fun onComplete(result: Bitmap) {
-                    Log.d(TAG, "onImageComplate " + result.toString())
-                    mFabShareButton.visibility = View.VISIBLE
+                    mFabRepostButton.visibility = View.VISIBLE
                     mNumberBar.progress = 100
                     mBitMapImageToShare = result
+                    val bitmapPath: String = MediaStore.Images.Media.insertImage(context.getContentResolver(), mBitMapImageToShare, "title", null);
+                    val bitmapUri: Uri = Uri.parse(bitmapPath)
+                    Log.d(TAG, "onImageComplate " + getRealPathFromURI(bitmapUri))
+                    mPost.pathToStorage = getRealPathFromURI(bitmapUri)
                     saveToPraf(mPost)
                 }
 
             })
             download.download(mPost.imageURL, true)
 
+
         }
     }
 
+    fun getRealPathFromURI(uri: Uri): String {
+        val cursor = activity.contentResolver.query(uri, null, null, null, null)
+        cursor!!.moveToFirst()
+        val idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+        return cursor.getString(idx)
+    }
     private fun saveToPraf(mPost: post) {
         try {
             SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);

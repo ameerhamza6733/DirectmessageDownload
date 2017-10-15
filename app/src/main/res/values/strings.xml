@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name"> save and repost</string>
     <string name="Check_url_Save_post">Check url &amp; Save post</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="title_activity_main2">Main2Activity</string>
+
+    <string name="action_settings">Settings</string>
 </resources>

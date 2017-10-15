@@ -48,7 +48,7 @@ public class myStandout extends StandOutWindow {
 
     @Override
     public StandOutLayoutParams getParams(int id, Window window) {
-        return  new StandOutLayoutParams(id, 150, 150,
+        return  new StandOutLayoutParams(id, 330, 300,
                 StandOutLayoutParams.BOTTOM, StandOutLayoutParams.RIGHT);
     }
     @Override

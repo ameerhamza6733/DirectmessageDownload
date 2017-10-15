@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:fab="http://schemas.android.com/tools"
 
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
+
     <android.support.v7.widget.CardView
         android:id="@+id/cardView"
         android:layout_width="wrap_content"
@@ -23,8 +25,8 @@
 
             <ImageView
                 android:id="@+id/imageView"
-                android:layout_width="300dp"
-                android:layout_height="250dp"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentLeft="true"
                 android:layout_alignParentRight="true"
@@ -40,6 +42,7 @@
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/imageView"
 
+                android:maxLines="4"
                 android:padding="16dp"
                 android:textColor="#0d47a1" />
 
@@ -60,22 +63,46 @@
             <TextView
                 android:id="@+id/textView_description"
                 android:layout_width="match_parent"
+                android:maxLines="4"
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/hash_tag_text_view"
-                android:layout_marginLeft="26dp" />
+                android:layout_marginLeft="26dp"
+                android:layout_alignParentStart="true" />
 
-            <android.support.design.widget.FloatingActionButton
-                android:id="@+id/floatingActionButtonShare"
+            <com.github.clans.fab.FloatingActionMenu
+                android:id="@+id/menu_yellow"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignEnd="@+id/copy_hash_tag_button"
-                android:layout_marginEnd="13dp"
-                android:layout_marginTop="270dp"
-                android:clickable="true"
+                android:layout_above="@+id/copy_hash_tag_button"
+                fab:menu_animationDelayPerItem="0"
+
+                fab:menu_colorNormal="#FFB805"
+                fab:menu_colorPressed="#F2AB00"
+                fab:menu_colorRipple="#D99200"
+                fab:menu_shadowColor="#444">
+
+                <com.github.clans.fab.FloatingActionButton
+                    android:id="@+id/floatingActionButtonShare"
+
+                    android:layout_width="wrap_content"
+                    app:fab_size="mini"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_share_white_24dp"
+                    fab:fab_label="Share" />
+
+                <com.github.clans.fab.FloatingActionButton
+                    android:id="@+id/floatingActionButtonRepost"
+                    style="@style/MenuButtonsStyle"
+
+                    app:fab_size="mini"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_repeat_white_24dp"
+                    fab:fab_label="Repost" />
 
 
-
-                app:srcCompat="@android:drawable/ic_menu_share" />
+            </com.github.clans.fab.FloatingActionMenu>
 
         </RelativeLayout>
     </android.support.v7.widget.CardView>
