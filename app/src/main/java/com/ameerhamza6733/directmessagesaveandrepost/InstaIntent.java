@@ -3,8 +3,11 @@ package com.ameerhamza6733.directmessagesaveandrepost;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.google.firebase.crash.FirebaseCrash;
 
 import java.io.File;
 
@@ -21,9 +24,10 @@ public class InstaIntent {
         try {
             Intent share = new Intent(Intent.ACTION_SEND);
             share.setType(type);
-            Uri uri = null;
-            File media = new File(mediaPath);
-            uri = Uri.fromFile(media);
+
+            Uri uri =  FileProvider.getUriForFile(context,
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    new File(mediaPath));
             if (uri != null) {
                 Log.d("InstaIntent", "URi" + uri.toString());
             }
@@ -38,7 +42,8 @@ public class InstaIntent {
 
 
         } catch (Exception e) {
-            Toast.makeText(context, "Some thing wrong error : " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            FirebaseCrash.report(new Exception("public void createVideoInstagramIntent Error code 2 Error : "+e.getMessage()));
+            Toast.makeText(context, "Some thing wrong error : Error code 2 " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
     }

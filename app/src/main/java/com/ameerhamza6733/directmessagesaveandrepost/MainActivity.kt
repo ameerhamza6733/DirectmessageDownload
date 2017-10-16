@@ -19,6 +19,9 @@ import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import com.google.firebase.FirebaseApp
+import com.google.firebase.crash.FirebaseCrash
+import com.google.firebase.iid.FirebaseInstanceId
 import com.kekstudio.dachshundtablayout.DachshundTabLayout
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.webianks.easy_feedback.EasyFeedback
@@ -36,11 +39,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(R.layout.activity_main)
         val toolbar = findViewById(R.id.toolbar) as Toolbar
         setSupportActionBar(toolbar)
-
-
+        FirebaseApp.initializeApp(this)
+        FirebaseInstanceId.getInstance().token
         val mViewPager = findViewById(R.id.view_pager) as ViewPager
         val mTabLayout = findViewById(R.id.tab_layout) as DachshundTabLayout
-
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
         mTabLayout.setupWithViewPager(mViewPager);
         SharedPreferencesManager.init(this, true)
@@ -58,6 +60,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 checkOverlayPermissionPermission()
             }
         } catch (Ex: Exception) {
+            FirebaseCrash.report(Exception("  override fun onCreate in mainActivity Error code 12 Error : " + Ex.message))
+            Toast.makeText(this@MainActivity, "Some thing wrong Error code 12 Error : " + Ex.message, Toast.LENGTH_LONG).show()
 
         }
         val navigationView = findViewById(R.id.nav_view) as NavigationView
@@ -111,6 +115,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     // StandOutWindow.show(this@MainActivity, myStandout::class.java, StandOutWindow.DEFAULT_ID)
                 } catch (e: Exception) {
                     e.stackTrace
+                    FirebaseCrash.report(Exception(" private fun registerClipBord() Error code 11 Error : " + e.message))
+                    Toast.makeText(this@MainActivity, "Some thing wrong Error code 11 Error : " + e.message, Toast.LENGTH_LONG).show()
                 }
 
             }

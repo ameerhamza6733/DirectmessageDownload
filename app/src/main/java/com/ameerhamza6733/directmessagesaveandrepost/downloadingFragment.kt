@@ -35,6 +35,9 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
 import com.github.clans.fab.FloatingActionButton
+import com.google.firebase.FirebaseException
+import com.google.firebase.crash.FirebaseCrash
+
 /**
  * Created by AmeerHamza on 10/6/2017.
  */
@@ -101,7 +104,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             }
 
         } catch (ex: Exception) {
-            Toast.makeText(activity, "some thing working while sharing Error: " + ex.message, Toast.LENGTH_LONG).show()
+            FirebaseCrash.report( Exception(" private fun shareIntent Error code 3 Error : "+ex.message));
+            Toast.makeText(activity, "some thing working while sharing Error: code 3  " + ex.message, Toast.LENGTH_LONG).show()
         }
 
 
@@ -129,7 +133,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 startActivity(Intent.createChooser(intent, "Share to"));
 
         } catch (e: Exception) {
-
+            FirebaseCrash.report( Exception("private fun shareImageIntentToInstagram Error code 4 Error : "+e.message))
+            Toast.makeText(activity,"Some thing wrong Error code 4 Error message : "+e.message,Toast.LENGTH_LONG).show()
         }
 
     }
@@ -167,8 +172,6 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume")
-        FirebaseApp.initializeApp(activity)
-        FirebaseInstanceId.getInstance().token
         copyDataFromClipBrod()
         setUpListerners()
         dm = DownloadManagerPro(activity)
@@ -296,6 +299,9 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             }
         }catch (ex :Exception){
 
+            FirebaseCrash.report( Exception("  private  fun checkIFPosAllreadyDownloaded Error code 5 Error : "+ex.message))
+            Toast.makeText(activity,"Some thing wrong Error code 5 Error message : "+ex.message,Toast.LENGTH_LONG).show()
+
             return false
         }
         return false
@@ -312,6 +318,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 mProgressBar.visibility = View.VISIBLE
                 mCardView.visibility = View.INVISIBLE
                 hideKeybord()
+            FirebaseCrash.log("onPreExecute"+ConnURL);
 
         }
 
@@ -380,6 +387,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
                 Picasso.with(activity).load(mPost.imageURL).into(mImage)
             } catch (Ex: Exception) {
+                FirebaseCrash.report( Exception("  private fun UpdateUI() Error code 6 Error : "+Ex.message))
+                Toast.makeText(activity,"Some thing wrong Error code 6 Error message : "+Ex.message,Toast.LENGTH_LONG).show()
 
                 Ex.printStackTrace()
             }
@@ -403,6 +412,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 else
                     downloadImage()
             } catch (ex: Exception) {
+                FirebaseCrash.report( Exception(" private fun intiDownloader()  Error code 7 Error : "+ex.message))
+                Toast.makeText(activity,"Some thing wrong Error code 7 Error message : "+ex.message,Toast.LENGTH_LONG).show()
 
             }
         }
@@ -449,6 +460,8 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         try {
             SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);
         } catch (ex: Exception) {
+            FirebaseCrash.report( Exception("  private fun saveToPraf Error code 8 Error : "+ex.message))
+            Toast.makeText(activity,"Some thing wrong Error code 8 Error message : "+ex.message,Toast.LENGTH_LONG).show()
 
         }
     }

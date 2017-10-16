@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 
 import java.io.File;
@@ -89,7 +90,8 @@ public class historyFragment extends Fragment {
                 initDataset();
             } catch (Exception e) {
                 e.printStackTrace();
-                Toast.makeText(getActivity(),"unable to load history if you just update your app then make sure uninstall this app first then reinstall ",Toast.LENGTH_LONG).show();
+                FirebaseCrash.report(new Exception(" public void setUserVisibleHint Error code 10 Error : "+e.getMessage()));
+                Toast.makeText(getActivity(),"unable to load history if you just update your app then make sure uninstall this app first then reinstall Error code 10",Toast.LENGTH_LONG).show();
             }
     }
 
