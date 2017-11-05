@@ -17,6 +17,10 @@
         <item android:id="@+id/nav_share_this_app"
             android:icon="@drawable/ic_share_black_24dp"
             android:title="Share this app" />
+        <item
+            android:id="@+id/nav_action_settings"
+            android:icon="@drawable/ic_settings_black_24dp"
+            android:title="Settings"/>
 
 
     </group>

@@ -17,7 +17,9 @@
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
-
+    <style name="splashScreenTheme" parent="@style/AppTheme.NoActionBar">
+        <item name="android:windowBackground">@drawable/ic_repeat_white_24dp</item>
+    </style>
     <style name="MenuButtonsStyle">
         <item name="fab_size">normal</item>
         <item name="fab_showAnimation">@anim/jump_from_down</item>

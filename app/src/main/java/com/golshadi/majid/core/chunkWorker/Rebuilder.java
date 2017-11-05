@@ -46,7 +46,12 @@ public class Rebuilder extends Thread{
 
             try {
                 while ((read = chFileIn.read(readBuffer)) > 0) {
-                    finalFile.write(readBuffer, 0, read);
+                    if (finalFile != null) {
+                        finalFile.write(readBuffer, 0, read);
+                    }else{
+                        observer.downloadManagerListener.onRebuildError("finalFile == null");
+                    }
+
                 }
             } catch (IOException e) {
                 e.printStackTrace();

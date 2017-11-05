@@ -6,7 +6,10 @@ import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 
 
-public class instructionActivity extends  AppCompatActivity{//TutorialActivity implements StepFragment.OnButtonClickedListener {
+public class instructionActivity extends  AppCompatActivity  {//TutorialActivity implements StepFragment.OnButtonClickedListener {
+
+
+    private int age;
 
 //    public static final String KEY_SHARED_PREF_IS_FIRST_TIME ="KEY_SHARED_PREF_IS_FIRST_TIME";
 //    public static final String KEY_SHARED_PRFE_NAME="isFirstTime";

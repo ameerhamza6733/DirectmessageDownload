@@ -33,3 +33,4 @@
  #### -- Apache Commons --
 
  -dontwarn org.apache.commons.logging.**
+ -keep class org.jsoup.**

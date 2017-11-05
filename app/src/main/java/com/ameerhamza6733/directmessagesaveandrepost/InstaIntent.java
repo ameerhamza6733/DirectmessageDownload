@@ -33,7 +33,7 @@ public class InstaIntent {
             }
             share.putExtra(Intent.EXTRA_STREAM, uri);
             share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            share.putExtra(Intent.EXTRA_SUBJECT, "happy valentine day");
+
             if (repost) {
                 share.setPackage("com.instagram.android");
                 context.startActivity(share);

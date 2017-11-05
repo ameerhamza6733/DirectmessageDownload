@@ -4,6 +4,7 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -32,6 +33,8 @@ public class ClipBrodHelper {
     }
 
     public void WriteToClipBord(Context context , String data){
+        SharedPreferences sharedPreferences = context.getSharedPreferences(Settings.SHARED_PREFF_SETTINGS_NAME, Context.MODE_PRIVATE);
+        data = sharedPreferences.getString(Settings.DEFAULT_CAPTION_KEY," ")+data;
         Toast.makeText(context,"hash tag copyted to clip bord",Toast.LENGTH_SHORT).show();
         ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("text label", data);

@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.provider.Settings
 import android.support.design.widget.NavigationView
+import android.support.design.widget.TabLayout
 import android.support.v4.view.GravityCompat
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
@@ -19,6 +20,13 @@ import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.InterstitialAd
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.reward.RewardItem
+import com.google.android.gms.ads.reward.RewardedVideoAd
+import com.google.android.gms.ads.reward.RewardedVideoAdListener
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crash.FirebaseCrash
 import com.google.firebase.iid.FirebaseInstanceId
@@ -28,29 +36,88 @@ import com.webianks.easy_feedback.EasyFeedback
 import wei.mark.standout.StandOutWindow
 
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
-    private final lateinit var clipboard: ClipboardManager
-    private final val isFirstTime = "isFirstTime"
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, RewardedVideoAdListener {
+    override fun onRewardedVideoAdClosed() {
 
+    }
+
+    override fun onRewardedVideoAdLeftApplication() {
+    }
+
+    override fun onRewardedVideoAdLoaded() {
+        loadinterstitialAd()
+    }
+
+    override fun onRewardedVideoAdOpened() {
+    }
+
+    override fun onRewarded(p0: RewardItem?) {
+    }
+
+    override fun onRewardedVideoStarted() {
+    }
+
+    override fun onRewardedVideoAdFailedToLoad(p0: Int) {
+        loadinterstitialAd()
+    }
+
+    private fun loadinterstitialAd() {
+        try {
+            FirebaseApp.initializeApp(this@MainActivity)
+            FirebaseInstanceId.getInstance().token
+            mInterstitialAd = InterstitialAd(this@MainActivity)
+            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/6509811189"
+            mInterstitialAd.loadAd(AdRequest.Builder().build())
+            mInterstitialAd.adListener = object : AdListener() {
+                override fun onAdClosed() {
+                    mInterstitialAd.loadAd(AdRequest.Builder().build())
+                }
+            }
+        } catch (ex: Exception) {
+        }
+    }
+
+    private lateinit var clipboard: ClipboardManager
+    private val isFirstTime = "isFirstTime"
     private lateinit var prefs: SharedPreferences
+    private lateinit var mRewardedVideoAd: RewardedVideoAd
+    private lateinit var mInterstitialAd: InterstitialAd
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val toolbar = findViewById(R.id.toolbar) as Toolbar
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        FirebaseApp.initializeApp(this)
-        FirebaseInstanceId.getInstance().token
-        val mViewPager = findViewById(R.id.view_pager) as ViewPager
-        val mTabLayout = findViewById(R.id.tab_layout) as DachshundTabLayout
+        loadinterstitialAd()
+        val mViewPager = findViewById<ViewPager>(R.id.view_pager)
+        val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
         mTabLayout.setupWithViewPager(mViewPager);
+        mTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+
+            }
+
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+             if(tab!!.position==1)
+                 try {
+                     if (mRewardedVideoAd.isLoaded)
+                         mRewardedVideoAd.show()
+                 }catch (Ex : Exception ){}
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+
+            }
+
+        });
         SharedPreferencesManager.init(this, true)
         registerClipBord()
-        val drawer = findViewById(R.id.drawer_layout) as DrawerLayout
+        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val toggle = ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
-        drawer.setDrawerListener(toggle)
+        drawer.addDrawerListener(toggle);
         toggle.syncState()
         try {
             prefs = application.getSharedPreferences(isFirstTime, Context.MODE_PRIVATE)
@@ -64,12 +131,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             Toast.makeText(this@MainActivity, "Some thing wrong Error code 12 Error : " + Ex.message, Toast.LENGTH_LONG).show()
 
         }
-        val navigationView = findViewById(R.id.nav_view) as NavigationView
+        val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
     }
 
+    private fun intiRewardedVideoAd() {
+        MobileAds.initialize(this, "ca-app-pub-5168564707064012~5058501866")
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this)
+        mRewardedVideoAd.rewardedVideoAdListener = this
+        loadRewardedVideoAd()
+
+    }
+
+    private fun loadRewardedVideoAd() {
+        mRewardedVideoAd.loadAd("ca-app-pub-5168564707064012/5568743535",
+                AdRequest.Builder().build())
+    }
+
     override fun onBackPressed() {
-        val drawer = findViewById(R.id.drawer_layout) as DrawerLayout
+        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START)
         } else {
@@ -138,26 +218,35 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
 
         return if (id == R.id.action_settings) {
-            Toast.makeText(this, "i am working on it, if you have any suggestion please send me feedback ", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this@MainActivity, com.ameerhamza6733.directmessagesaveandrepost.Settings::class.java))
+            // Toast.makeText(this, "i am working on it, if you have any suggestion please send me feedback ", Toast.LENGTH_SHORT).show()
             true
         } else super.onOptionsItemSelected(item)
 
     }
 
 
+    override fun onResume() {
+        super.onResume()
+
+        try {
+            if (mInterstitialAd.isLoaded)
+               mInterstitialAd.show()
+        }catch (ex : Exception){}
+    }
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
         val id = item.itemId
-
         when (id) {
             R.id.nav_feedback -> feedBack()
             R.id.nav_rate -> openMarket(this.packageName)
             R.id.nav_facebook_stalker -> openMarket("com.ameerhamza6733.fbprofilescaner")
             R.id.nav_share_this_app -> shareThisApp();
+            R.id.nav_action_settings -> {
+                startActivity(Intent(this@MainActivity, com.ameerhamza6733.directmessagesaveandrepost.Settings::class.java))
+            }
         }
-
-
-        val drawer = findViewById(R.id.drawer_layout) as DrawerLayout
+        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         drawer.closeDrawer(GravityCompat.START)
         return true
     }

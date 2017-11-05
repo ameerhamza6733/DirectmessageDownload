@@ -17,6 +17,8 @@ public interface DownloadManagerListener {
 
     void OnDownloadRebuildFinished(long taskId);
 
+    void onRebuildError(String errorMessage);
+
     void OnDownloadCompleted(long taskId);
     
     void connectionLost(long taskId);

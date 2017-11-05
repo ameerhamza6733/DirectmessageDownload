@@ -59,4 +59,10 @@ public class DownloadManagerListenerModerator {
 			downloadManagerListener.connectionLost(taskId);
 		}
     }
+
+    public void onRebuildError(String errorMessage){
+        if (downloadManagerListener !=null){
+            downloadManagerListener.onRebuildError(errorMessage);
+        }
+    }
 }

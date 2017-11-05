@@ -39,7 +39,6 @@ public class myStandout extends StandOutWindow {
                 Intent intent = new Intent(view.getContext(),MainActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
                 startActivity(intent);
             }
         });
