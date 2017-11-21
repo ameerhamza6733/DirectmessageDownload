@@ -34,8 +34,10 @@ public class Rebuilder extends Thread{
         FileOutputStream finalFile = null;
         try {
             finalFile = new FileOutputStream(file, true);
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
+            observer.downloadManagerListener.onRebuildError("finalFile == null");
             e.printStackTrace();
+            return;
         }
 
         byte[] readBuffer = new byte[1024];
