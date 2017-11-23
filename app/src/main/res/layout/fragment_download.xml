@@ -24,7 +24,7 @@
             android:ems="10"
             android:focusableInTouchMode="true"
 
-            android:hint="Past URL here"
+            android:hint="https://www.instagram.com/p/XXX"
             android:inputType="textUri"
             android:padding="8dp"
             app:layout_constraintLeft_toLeftOf="parent"

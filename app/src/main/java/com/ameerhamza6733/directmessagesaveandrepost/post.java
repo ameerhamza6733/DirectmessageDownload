@@ -12,6 +12,7 @@ public class post {
     private String medium;
     private String postID;
     private String pathToStorage;
+    private String url;
 
 
 
@@ -28,6 +29,13 @@ public class post {
         postID = postDownloadingName;
     }
 
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
 
     public void setImageURL(String imageURL) {
         this.imageURL = imageURL;

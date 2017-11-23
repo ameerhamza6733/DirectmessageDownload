@@ -17,6 +17,7 @@ import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -34,6 +35,7 @@ import com.kekstudio.dachshundtablayout.DachshundTabLayout
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.webianks.easy_feedback.EasyFeedback
 import wei.mark.standout.StandOutWindow
+import java.util.*
 
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, RewardedVideoAdListener {
@@ -84,6 +86,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var mInterstitialAd: InterstitialAd
 
 
+    private  lateinit var timer: Timer
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -93,6 +97,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val mViewPager = findViewById<ViewPager>(R.id.view_pager)
         val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
+        intiRewardedVideoAd()
         mTabLayout.setupWithViewPager(mViewPager);
         mTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -136,6 +141,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun intiRewardedVideoAd() {
+        Log.d("MiainActivty,","trying to load rewaded video ads");
         MobileAds.initialize(this, "ca-app-pub-5168564707064012~5058501866")
         mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this)
         mRewardedVideoAd.rewardedVideoAdListener = this
