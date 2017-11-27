@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onRewardedVideoAdLoaded() {
-        loadinterstitialAd()
+
     }
 
     override fun onRewardedVideoAdOpened() {
@@ -60,30 +60,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onRewardedVideoAdFailedToLoad(p0: Int) {
-        loadinterstitialAd()
+
     }
 
-    private fun loadinterstitialAd() {
-        try {
-            FirebaseApp.initializeApp(this@MainActivity)
-            FirebaseInstanceId.getInstance().token
-            mInterstitialAd = InterstitialAd(this@MainActivity)
-            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-            mInterstitialAd.loadAd(AdRequest.Builder().build())
-            mInterstitialAd.adListener = object : AdListener() {
-                override fun onAdClosed() {
-                    mInterstitialAd.loadAd(AdRequest.Builder().build())
-                }
-            }
-        } catch (ex: Exception) {
-        }
-    }
 
     private lateinit var clipboard: ClipboardManager
     private val isFirstTime = "isFirstTime"
     private lateinit var prefs: SharedPreferences
     private lateinit var mRewardedVideoAd: RewardedVideoAd
-    private lateinit var mInterstitialAd: InterstitialAd
+
 
 
     private  lateinit var timer: Timer
@@ -93,7 +78,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        loadinterstitialAd()
         val mViewPager = findViewById<ViewPager>(R.id.view_pager)
         val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
@@ -235,10 +219,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onResume() {
         super.onResume()
 
-        try {
-            if (mInterstitialAd.isLoaded)
-               mInterstitialAd.show()
-        }catch (ex : Exception){}
     }
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.

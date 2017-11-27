@@ -28,6 +28,9 @@ import com.github.clans.fab.FloatingActionButton
 import com.golshadi.majid.core.DownloadManagerPro
 import com.golshadi.majid.report.ReportStructure
 import com.golshadi.majid.report.listener.DownloadManagerListener
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.InterstitialAd
 import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
@@ -190,7 +193,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mFabShareButton: FloatingActionButton
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
-
+    private lateinit var mInterstitialAd: InterstitialAd
 
     private lateinit var dm: DownloadManagerPro
     private var taskToken: Int = -1
@@ -207,6 +210,16 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         dm = DownloadManagerPro(activity)
         dm.init("DMinstaDownload/", 12, this)
         setUpListerners()
+        try {
+            mInterstitialAd = InterstitialAd(activity)
+            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/6509811189"
+            mInterstitialAd.loadAd(AdRequest.Builder().build())
+            mInterstitialAd.adListener = object : AdListener() {
+                override fun onAdClosed() {
+                    mInterstitialAd.loadAd(AdRequest.Builder().build())
+                }
+            }
+        }catch (E : Exception){}
         return view
     }
 
@@ -387,6 +400,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             } catch (E: Exception) {
             }
 
+
         }
 
         override fun doInBackground(vararg p0: Void?): String {
@@ -427,12 +441,26 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
             FirebaseCrash.log("onPostExecute isSomeThingWrong"+isSomeThingWrong)
+
             if (!isSomeThingWrong) {
+                showAdd()
                 UpdateUI()
                 intiDownloader()
             } else {
                 mProgressBar.visibility = View.INVISIBLE
                 Snackbar.make(mCardView, "unable to get downloading url", Snackbar.LENGTH_LONG).setAction("try again") { grabData(mEditTextInputURl.text.toString()).execute() }.show()
+            }
+        }
+
+        private fun showAdd() {
+            try {
+                Toast.makeText(activity, "while we Downloading your post you can watch ad", Toast.LENGTH_LONG).show()
+                if (mInterstitialAd.isLoaded)
+                    mInterstitialAd.show()
+                else
+                    Log.d(TAG, "adNotLoaded")
+            } catch (ex: Exception) {
+                ex.printStackTrace()
             }
         }
 
@@ -507,6 +535,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }
     }
 
+    @SuppressLint("Recycle")
     fun getRealPathFromURI(uri: Uri): String {
         val cursor = activity.contentResolver.query(uri, null, null, null, null)
         cursor!!.moveToFirst()
