@@ -212,7 +212,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         setUpListerners()
         try {
             mInterstitialAd = InterstitialAd(activity)
-            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/6509811189"
+            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/3666631165"
             mInterstitialAd.loadAd(AdRequest.Builder().build())
             mInterstitialAd.adListener = object : AdListener() {
                 override fun onAdClosed() {

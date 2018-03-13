@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val mViewPager = findViewById<ViewPager>(R.id.view_pager)
         val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
-        intiRewardedVideoAd()
+       // intiRewardedVideoAd()
         mTabLayout.setupWithViewPager(mViewPager);
         mTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabUnselected(tab: TabLayout.Tab?) {
