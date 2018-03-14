@@ -1,0 +1,195 @@
+{
+  "project_info": {
+    "project_number": "689710801545",
+    "firebase_url": "https://facebook-scan.firebaseio.com",
+    "project_id": "facebook-scan",
+    "storage_bucket": "facebook-scan.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689710801545:android:ac2fa67dce4838d4",
+        "android_client_info": {
+          "package_name": "com.ameerhamza6733.fbprofilescaner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "689710801545-c7a5ejlv74c3eu4jijmm6jnd6b845a62.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ameerhamza6733.fbprofilescaner",
+            "certificate_hash": "dd9e8903f458d7ff139310cbcfd037a8806d9aa3"
+          }
+        },
+        {
+          "client_id": "689710801545-r12cj4b854ctj45bjguvibufq6qcnp8b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ameerhamza6733.fbprofilescaner",
+            "certificate_hash": "1d9ffe62a858e609fbaa56bf8ee4bfd6a93df4f1"
+          }
+        },
+        {
+          "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzpFwk2oyLpmkg26PoI6QJnjyEV-2G2ak"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689710801545:android:547a9c3fbd3a960e",
+        "android_client_info": {
+          "package_name": "com.ameerhamza6733.snapmapfakeloction"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "689710801545-t1e84ogi388kcsp4tgj31hb12orma8rd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ameerhamza6733.snapmapfakeloction",
+            "certificate_hash": "49d27da34856742cba116b31399d8439dbb51495"
+          }
+        },
+        {
+          "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzpFwk2oyLpmkg26PoI6QJnjyEV-2G2ak"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689710801545:android:db03b8577dc8d027",
+        "android_client_info": {
+          "package_name": "com.ameerhamza6733.directmessagesaveandrepost"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "689710801545-l7m270foh0167crsnbifri25r1sqjrrs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ameerhamza6733.directmessagesaveandrepost",
+            "certificate_hash": "a4ce9e989f9a418d211437d5832adf74574c31ea"
+          }
+        },
+        {
+          "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzpFwk2oyLpmkg26PoI6QJnjyEV-2G2ak"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689710801545:android:96a396b368307bf9",
+        "android_client_info": {
+          "package_name": "com.ameerhamza.animatedgiflivewallpapers"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "689710801545-sdckaq66o1f6g3tlf5ojle426f1klij3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ameerhamza.animatedgiflivewallpapers",
+            "certificate_hash": "6de1257735528e4d7d4f9c4b7ce8a3fbc222a0c1"
+          }
+        },
+        {
+          "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzpFwk2oyLpmkg26PoI6QJnjyEV-2G2ak"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "689710801545-0ig9kt51kgtl5j2b54bim0ic60c3aa58.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

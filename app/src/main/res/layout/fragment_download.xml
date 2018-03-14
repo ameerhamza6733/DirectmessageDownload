@@ -2,8 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:custom="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     xmlns:fab="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -40,19 +40,19 @@
             android:layout_below="@+id/URL_Input_edit_text"
             android:layout_marginTop="8dp"
             android:background="#304FFE"
-            android:textColor="#FFFFFF"
             android:padding="8dp"
-            android:text="@string/Check_url_Save_post" />
+            android:text="@string/Check_url_Save_post"
+            android:textColor="#FFFFFF" />
 
         <ProgressBar
             android:id="@+id/progressBar"
             style="?android:attr/progressBarStyle"
             android:layout_width="wrap_content"
-            android:progress="100"
-            android:visibility="visible"
             android:layout_height="wrap_content"
             android:layout_below="@+id/chack_and_save_post"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            android:progress="100"
+            android:visibility="visible" />
 
         <android.support.v7.widget.CardView
             android:id="@+id/cardView"
@@ -61,7 +61,7 @@
             android:layout_below="@id/progressBar"
             android:layout_marginLeft="8dp"
             android:layout_marginRight="8dp"
-            android:visibility="invisible"
+
             android:layout_marginTop="16dp">
 
             <RelativeLayout
@@ -93,18 +93,49 @@
                     android:textColor="#0d47a1" />
 
 
-                <Button
-                    android:id="@+id/copy_hash_tag_button"
+                <LinearLayout
+
+                    android:id="@+id/linear_button_layout"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_alignParentRight="true"
-                    android:textColor="#FFFFFF"
-                    android:background="#304FFE"
-                    android:padding="8dp"
                     android:layout_below="@+id/textView_description"
-                    android:layout_margin="8dp"
-                    android:text="Copy Hash Tag" />
+                    android:orientation="horizontal"
+                    >
+                    <Button
+                        android:id="@+id/copy_hash_tag_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="#304FFE"
+                        android:layout_margin="8dp"
+                        android:padding="8dp"
+                        android:text="Copy #"
+                        android:textColor="#FFFFFF" />
+
+                    <Button
+
+                        android:id="@+id/copy_caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="8dp"
+                        android:padding="8dp"
+                        android:background="#304FFE"
+                        android:text="Copy caption "
+                        android:textColor="#FFFFFF"
+
+                        />
+
+                    <Button
+                        android:padding="8dp"
+                        android:id="@+id/copy_both"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="#304FFE"
+                        android:layout_margin="8dp"
+                        android:text="Both"
+                        android:textColor="#FFFFFF" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/textView_description"
@@ -118,29 +149,29 @@
 
                 <com.daimajia.numberprogressbar.NumberProgressBar
                     android:id="@+id/number_progress_bar"
-                    android:layout_below="@id/imageView"
+                    style="@style/NumberProgressBar_Default"
                     android:layout_width="wrap_content"
 
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/imageView"
                     custom:progress_current="0"
-                    custom:progress_unreached_color="#CCCCCC"
+
+                    custom:progress_reached_bar_height="1.5dp"
                     custom:progress_reached_color="#3498DB"
 
-                    custom:progress_unreached_bar_height="0.75dp"
-                    custom:progress_reached_bar_height="1.5dp"
-
-                    custom:progress_text_size="10sp"
                     custom:progress_text_color="#3498DB"
                     custom:progress_text_offset="1dp"
+                    custom:progress_text_size="10sp"
                     custom:progress_text_visibility="visible"
-                    style="@style/NumberProgressBar_Default"
-                    android:layout_height="wrap_content"
-                    />
+                    custom:progress_unreached_bar_height="0.75dp"
+                    custom:progress_unreached_color="#CCCCCC" />
+
                 <com.github.clans.fab.FloatingActionMenu
                     android:id="@+id/menu_yellow"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignEnd="@+id/copy_hash_tag_button"
                     android:layout_above="@+id/hash_tag_text_view"
+                    android:layout_alignEnd="@+id/linear_button_layout"
                     fab:menu_animationDelayPerItem="0"
                     fab:menu_colorNormal="#FFB805"
                     fab:menu_colorPressed="#F2AB00"
@@ -165,6 +196,8 @@
 
 
                 </com.github.clans.fab.FloatingActionMenu>
+
+
 
             </RelativeLayout>
         </android.support.v7.widget.CardView>
