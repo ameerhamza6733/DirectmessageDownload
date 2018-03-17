@@ -1,9 +1,12 @@
 <resources>
-    <string name="app_name"> save and repost</string>
+    <string name="app_name">copy caption and tag </string>
     <string name="Check_url_Save_post">Check url &amp; Save post</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="title_activity_main2">Main2Activity</string>
 
     <string name="action_settings">Settings</string>
+
+    <string name="banner_ad_test_id">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="banner_ad_read_id">ca-app-pub-5168564707064012/8638685692</string>
 </resources>

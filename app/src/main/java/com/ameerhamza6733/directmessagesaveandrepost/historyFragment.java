@@ -42,7 +42,9 @@ public class historyFragment extends Fragment {
     protected CustomAdapter mAdapter;
     protected RecyclerView.LayoutManager mLayoutManager;
     protected List<post> mDataset;
-
+    public static historyFragment newInstance() {
+        return new historyFragment();
+    }
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

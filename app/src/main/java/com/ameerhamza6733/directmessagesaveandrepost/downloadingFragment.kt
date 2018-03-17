@@ -32,9 +32,6 @@ import com.github.clans.fab.FloatingActionButton
 import com.golshadi.majid.core.DownloadManagerPro
 import com.golshadi.majid.report.ReportStructure
 import com.golshadi.majid.report.listener.DownloadManagerListener
-import com.google.android.gms.ads.AdListener
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.InterstitialAd
 import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
@@ -46,7 +43,6 @@ import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
-import java.util.concurrent.TimeoutException
 
 /**
  * Created by AmeerHamza on 10/6/2017.
@@ -61,6 +57,15 @@ import java.util.concurrent.TimeoutException
  */
 
 class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarListener {
+    companion object {
+        private val ARG_CAUGHT = "myFragment_caught"
+
+        fun newInstance(): downloadingFragment {
+
+            return downloadingFragment()
+        }
+    }
+
     override fun onRebuildError(errorMessage: String?) {
         try {
             activity.runOnUiThread {
@@ -199,13 +204,13 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mCopyHashTagButton: Button
     private lateinit var mCopyCaptionButton: Button
     private lateinit var mCopyBothButton: Button
-    private lateinit var mCaption: TextView
+    private lateinit var mCaptionTextView: TextView
     private lateinit var mNumberBar: NumberProgressBar
     private lateinit var mFabRepostButton: FloatingActionButton
     private lateinit var mFabShareButton: FloatingActionButton
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
-    private lateinit var mInterstitialAd: InterstitialAd
+
 
     private lateinit var dm: DownloadManagerPro
     private var taskToken: Int = -1
@@ -222,25 +227,11 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         dm = DownloadManagerPro(activity)
         dm.init("DMinstaDownload/", 12, this)
         setUpListerners()
-        try {
-            mInterstitialAd = InterstitialAd(activity)
-            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/3666631165"
-            mInterstitialAd.loadAd(AdRequest.Builder().build())
-            mInterstitialAd.adListener = object : AdListener() {
-                override fun onAdClosed() {
-                    mInterstitialAd.loadAd(AdRequest.Builder().build())
-                }
-            }
-        } catch (E: Exception) {
-        }
+        copyDataFromClipBrod()
+
         return view
     }
 
-
-    override fun onResume() {
-        super.onResume()
-        copyDataFromClipBrod()
-    }
 
     override fun onDestroy() {
         try {
@@ -264,21 +255,47 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     }
 
-    private fun copyCaptionToClipBord() {
-        if (!mCaption.text.isEmpty()) {
+    private fun CopyBoth() {
+        var hashTagAndCaption = "";
+        if (!mHashTagTextView.text.isEmpty()) {
+            hashTagAndCaption = mHashTagTextView.text.toString();
+        }
+        if (!mCaptionTextView.text.isEmpty()) {
+            hashTagAndCaption += mCaptionTextView.text.toString()
+        }
+        val clipbordHelper = ClipBrodHelper()
+        clipbordHelper.WriteToClipBord(activity, hashTagAndCaption)
+    }
 
-            if (!mPost.hashTags.isEmpty()) {
-                mPost.content =mPost.content.replace("#","")
-                var hashTagsArray = mPost.hashTags.split("#")
-                for (hashtag in hashTagsArray) {
-                    if (mPost.content.toLowerCase().contains(hashtag.toLowerCase())) {
-                        mPost.content = mPost.content.replace(hashtag, "")
-                    }
+    private fun copyCaptionToClipBord() {
+        if (!mCaptionTextView.text.isEmpty()) {
+
+            val clipbordHelper = ClipBrodHelper()
+            clipbordHelper.WriteToClipBord(activity, mCaptionTextView.text.toString())
+
+        }
+
+
+    }
+
+    private fun RemoveHashTagFromCaption() {
+        Observable.fromCallable({
+            if (mPost.content != null && !mPost.content.isEmpty()) {
+                if (mPost.hashTags != null && !mPost.hashTags.isEmpty()) {
+                    mPost.content = mPost.content.replace("#", "")
+                    var hashTagsArray = mPost.hashTags.split("#")
+                    hashTagsArray
+                            .filter { mPost.content.toLowerCase().contains(it.toLowerCase()) }
+                            .forEach { mPost.content = mPost.content.replace(it, "") }
+
                 }
-                val clipbordHelper = ClipBrodHelper()
-                clipbordHelper.WriteToClipBord(activity, mCaption.text.toString())
+
+            } else {
+                mPost.content = "";
             }
 
+        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.computation()).subscribe {
+            mCaptionTextView.text = mPost.content
         }
     }
 
@@ -289,30 +306,29 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         mFabShareButton.setOnClickListener({ shareIntent(false) })
         mCopyHashTagButton.setOnClickListener({ copyHashTagToClipBord() })
         mCopyCaptionButton.setOnClickListener({ copyCaptionToClipBord() })
+        mCopyBothButton.setOnClickListener({ CopyBoth() })
     }
 
     private fun downloadCaption(postUrl: String) {
-        Observable.fromCallable({
-            val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, "https://api.instagram.com/oembed/?url=" + postUrl, null,
-                    Response.Listener { response ->
-                        var text = response.getString("title")
-                        if (!text.isEmpty()) {
-                            mCaption.text = response.getString("title")
-                            mPost.content = response.getString("title")
 
-                        }
-
-
-                    },
-                    Response.ErrorListener { error ->
-                        // TODO: Handle error
-                        error.printStackTrace()
-                        Toast.makeText(activity, "Unable to get full caption", Toast.LENGTH_LONG).show()
+        val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, "https://api.instagram.com/oembed/?url=" + postUrl, null,
+                Response.Listener { response ->
+                    var text = response.getString("title")
+                    if (!text.isEmpty()) {
+                        mPost.content = response.getString("title")
+                        RemoveHashTagFromCaption()
                     }
-            )
-            Volley.newRequestQueue(activity).add(jsonObjectRequest);
 
-        }).observeOn(Schedulers.io()).subscribeOn(AndroidSchedulers.mainThread()).subscribe { }
+                },
+                Response.ErrorListener { error ->
+                    // TODO: Handle error
+                    error.printStackTrace()
+                    Toast.makeText(activity, "Unable to get full caption", Toast.LENGTH_LONG).show()
+                }
+        )
+        Volley.newRequestQueue(activity).add(jsonObjectRequest);
+
+
     }
 
     private fun copyDataFromClipBrod() {
@@ -343,7 +359,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         mCheckAndSaveButton = view.findViewById<Button>(R.id.chack_and_save_post) as Button
         mImage = view.findViewById<ImageView>(R.id.imageView) as ImageView
         mHashTagTextView = view.findViewById<TextView>(R.id.hash_tag_text_view) as TextView
-        mCaption = view.findViewById<TextView>(R.id.textView_description) as TextView
+        mCaptionTextView = view.findViewById<TextView>(R.id.textView_description) as TextView
         mCopyCaptionButton = view.findViewById<Button>(R.id.copy_caption)
         mCopyBothButton = view.findViewById<Button>(R.id.copy_both)
         mCopyHashTagButton = view.findViewById<Button>(R.id.copy_hash_tag_button) as Button
@@ -472,8 +488,10 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         override fun doInBackground(vararg p0: Void?): String {
             try {
-                document = Jsoup.connect(ConnURL).timeout(10 * 1000).ignoreContentType(true).parser(Parser.htmlParser()).get()
-            } catch (Ex: TimeoutException) {
+                document = Jsoup.connect(ConnURL).timeout(6000).ignoreContentType(true).parser(Parser.htmlParser()).get()
+            } catch (Ex: Exception) {
+                Ex.printStackTrace()
+                isSomeThingWrong = true
             }
             try {
                 if (document != null) {
@@ -516,7 +534,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             FirebaseCrash.log("onPostExecute isSomeThingWrong" + isSomeThingWrong)
 
             if (!isSomeThingWrong) {
-                showAdd()
+
                 UpdateUI()
                 intiDownloader()
             } else {
@@ -531,18 +549,6 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }
 
 
-        private fun showAdd() {
-            try {
-                Toast.makeText(activity, "while we Downloading your post you can watch ad", Toast.LENGTH_LONG).show()
-                if (mInterstitialAd.isLoaded)
-                //  mInterstitialAd.show()
-                else
-                    Log.d(TAG, "adNotLoaded")
-            } catch (ex: Exception) {
-                ex.printStackTrace()
-            }
-        }
-
         private fun UpdateUI() {
             mProgressBar.visibility = View.INVISIBLE
 
@@ -551,7 +557,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             try {
                 if (!mPost.content.isNullOrEmpty() && isContainsColan()) {
                     mPost.content = mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length)
-                    mCaption.text = mPost.content
+                    mCaptionTextView.text = mPost.content
                 }
                 Picasso.with(activity).load(mPost.imageURL).into(mImage)
             } catch (Ex: Exception) {

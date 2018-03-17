@@ -21,21 +21,17 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
-import com.google.android.gms.ads.AdListener
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.InterstitialAd
-import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.*
 import com.google.android.gms.ads.reward.RewardItem
 import com.google.android.gms.ads.reward.RewardedVideoAd
 import com.google.android.gms.ads.reward.RewardedVideoAdListener
-import com.google.firebase.FirebaseApp
 import com.google.firebase.crash.FirebaseCrash
-import com.google.firebase.iid.FirebaseInstanceId
 import com.kekstudio.dachshundtablayout.DachshundTabLayout
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.webianks.easy_feedback.EasyFeedback
 import wei.mark.standout.StandOutWindow
 import java.util.*
+import kotlin.concurrent.timerTask
 
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, RewardedVideoAdListener {
@@ -65,13 +61,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
 
     private lateinit var clipboard: ClipboardManager
-    private val isFirstTime = "isFirstTime"
     private lateinit var prefs: SharedPreferences
     private lateinit var mRewardedVideoAd: RewardedVideoAd
+    private lateinit var mInterstitialAd: InterstitialAd
+    lateinit var mAdView: AdView
+    lateinit var mTimer : Timer
+
+    private val isFirstTime = "isFirstTime"
+    private val interstitialTestAdd = "ca-app-pub-3940256099942544/1033173712"
+    private val AdmobAppID = "ca-app-pub-5168564707064012~5058501866"
+    private val interstitialRealAdd = "ca-app-pub-5168564707064012/3666631165"
 
 
 
-    private  lateinit var timer: Timer
+    private lateinit var timer: Timer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,7 +84,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val mViewPager = findViewById<ViewPager>(R.id.view_pager)
         val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
-       // intiRewardedVideoAd()
+        MobileAds.initialize(this, AdmobAppID)
+
+        // intiRewardedVideoAd()
+        loadBannerAd()
+        mTimer = Timer();
+        mTimer.schedule(timerTask { runOnUiThread({loadIntiAdd()} )},5000);
         mTabLayout.setupWithViewPager(mViewPager);
         mTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -89,11 +97,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             override fun onTabSelected(tab: TabLayout.Tab?) {
-             if(tab!!.position==1)
-                 try {
-                     if (mRewardedVideoAd.isLoaded)
-                         mRewardedVideoAd.show()
-                 }catch (Ex : Exception ){}
+                if (tab!!.position == 1)
+                    try {
+                        if (mInterstitialAd.isLoaded)
+                            mInterstitialAd.show()
+                    } catch (Ex: Exception) {
+                    }
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {
@@ -125,13 +134,40 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun intiRewardedVideoAd() {
-        Log.d("MiainActivty,","trying to load rewaded video ads");
+        Log.d("MiainActivty,", "trying to load rewaded video ads");
         MobileAds.initialize(this, "ca-app-pub-5168564707064012~5058501866")
         mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this)
         mRewardedVideoAd.rewardedVideoAdListener = this
         loadRewardedVideoAd()
 
     }
+
+
+    private fun loadIntiAdd() {
+        try {
+            mInterstitialAd = InterstitialAd(this)
+            mInterstitialAd.adUnitId = interstitialTestAdd
+            mInterstitialAd.loadAd(AdRequest.Builder().build())
+            mInterstitialAd.adListener = object : AdListener() {
+                override fun onAdClosed() {
+                    mInterstitialAd.loadAd(AdRequest.Builder().build())
+                }
+            }
+        } catch (E: Exception) {
+        }
+    }
+
+    private fun loadBannerAd(){
+        try {
+            mAdView = findViewById(R.id.adView)
+            val adRequest = AdRequest.Builder().build()
+            mAdView.loadAd(adRequest)
+
+        }catch (E : Exception){}
+    }
+
+
+
 
     private fun loadRewardedVideoAd() {
         mRewardedVideoAd.loadAd("ca-app-pub-5168564707064012/5568743535",
@@ -220,6 +256,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onResume()
 
     }
+
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
         val id = item.itemId

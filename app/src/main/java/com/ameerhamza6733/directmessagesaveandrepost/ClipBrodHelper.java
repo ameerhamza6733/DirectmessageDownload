@@ -35,7 +35,7 @@ public class ClipBrodHelper {
     public void WriteToClipBord(Context context , String data){
         SharedPreferences sharedPreferences = context.getSharedPreferences(Settings.SHARED_PREFF_SETTINGS_NAME, Context.MODE_PRIVATE);
         data = sharedPreferences.getString(Settings.DEFAULT_CAPTION_KEY," ")+data;
-        Toast.makeText(context,"hash tag copyted to clip bord",Toast.LENGTH_SHORT).show();
+        Toast.makeText(context,"Data copped to clip bord",Toast.LENGTH_SHORT).show();
         ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("text label", data);
         clipboard.setPrimaryClip(clip);
