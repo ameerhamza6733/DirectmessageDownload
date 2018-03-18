@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun loadIntiAdd() {
         try {
             mInterstitialAd = InterstitialAd(this)
-            mInterstitialAd.adUnitId = interstitialTestAdd
+            mInterstitialAd.adUnitId = interstitialRealAdd
             mInterstitialAd.loadAd(AdRequest.Builder().build())
             mInterstitialAd.adListener = object : AdListener() {
                 override fun onAdClosed() {
