@@ -36,13 +36,16 @@ import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
 import io.reactivex.Observable
+import io.reactivex.Observer
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
+import java.util.concurrent.Callable
 
 /**
  * Created by AmeerHamza on 10/6/2017.
@@ -56,19 +59,19 @@ import org.jsoup.parser.Parser
  * repeat()
  */
 
-class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarListener {
+class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarListener {
     companion object {
         private val ARG_CAUGHT = "myFragment_caught"
 
-        fun newInstance(): downloadingFragment {
+        fun newInstance(temp: Int): DownloadingFragment {
 
-            return downloadingFragment()
+            return DownloadingFragment()
         }
     }
 
     override fun onRebuildError(errorMessage: String?) {
         try {
-            activity.runOnUiThread {
+            activity!!.runOnUiThread {
                 Toast.makeText(context, "onRebuildError ", Toast.LENGTH_LONG).show()
                 mNumberBar.progress = 0
             }
@@ -84,10 +87,10 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private var TAG = "MainActivityTAG"
     override fun OnDownloadStarted(taskId: Long) {
         try {
-            activity.runOnUiThread {
-                if (this@downloadingFragment.activity != null) {
+            activity!!.runOnUiThread {
+                if (this@DownloadingFragment.activity != null) {
                     Toast.makeText(activity, "Downloading start", Toast.LENGTH_SHORT).show()
-                    this@downloadingFragment.activity.runOnUiThread({ mNumberBar.progress = 0 })
+                    this@DownloadingFragment.activity!!.runOnUiThread({ mNumberBar.progress = 0 })
                     FirebaseCrash.log("OnDownloadStarted")
                 }
             }
@@ -103,9 +106,9 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     override fun onDownloadProcess(taskId: Long, percent: Double, downloadedLength: Long) {
         try {
-            activity.runOnUiThread {
-                if (this@downloadingFragment.activity != null)
-                    this@downloadingFragment.activity.runOnUiThread({ mNumberBar.incrementProgressBy(1) })
+            activity!!.runOnUiThread {
+                if (this@DownloadingFragment.activity != null)
+                    this@DownloadingFragment.activity!!.runOnUiThread({ mNumberBar.incrementProgressBy(1) })
             }
         } catch (Ex: Exception) {
             FirebaseCrash.report(Exception("onDownloadProcess " + Ex.message))
@@ -128,7 +131,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
 
     override fun OnDownloadCompleted(taskId: Long) {
-        activity.runOnUiThread {
+        activity!!.runOnUiThread {
             Toast.makeText(activity, "Downloading complete", Toast.LENGTH_SHORT).show()
             mNumberBar.progress = 100
             mFabRepostButton.visibility = View.VISIBLE
@@ -143,7 +146,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     override fun connectionLost(taskId: Long) {
-        activity.runOnUiThread {
+        activity!!.runOnUiThread {
             Snackbar.make(mCardView, "Connection Lost try again", Snackbar.LENGTH_INDEFINITE).setAction("try again", object : View.OnClickListener {
                 override fun onClick(v: View?) = try {
                     if (taskToken != null)
@@ -222,10 +225,14 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
-        SettingsPrefs = activity.getSharedPreferences(SHARED_PREFF_SETTINGS_NAME, Context.MODE_PRIVATE)
+
         staupUI(view)
-        dm = DownloadManagerPro(activity)
-        dm.init("DMinstaDownload/", 12, this)
+        Observable.fromCallable {
+            SharedPreferencesManager.init(activity, true)
+            SettingsPrefs = activity!!.getSharedPreferences(SHARED_PREFF_SETTINGS_NAME, Context.MODE_PRIVATE)
+            dm = DownloadManagerPro(activity)
+            dm.init("DMinstaDownload/", 12, this)
+        }.observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io()).subscribe()
         setUpListerners()
         copyDataFromClipBrod()
 
@@ -279,24 +286,19 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun RemoveHashTagFromCaption() {
-        Observable.fromCallable({
-            if (mPost.content != null && !mPost.content.isEmpty()) {
-                if (mPost.hashTags != null && !mPost.hashTags.isEmpty()) {
-                    mPost.content = mPost.content.replace("#", "")
-                    var hashTagsArray = mPost.hashTags.split("#")
-                    hashTagsArray
-                            .filter { mPost.content.toLowerCase().contains(it.toLowerCase()) }
-                            .forEach { mPost.content = mPost.content.replace(it, "") }
 
-                }
-
-            } else {
-                mPost.content = "";
+        if (mPost.content != null && !mPost.content.isEmpty()) {
+            if (mPost.hashTags != null && !mPost.hashTags.isEmpty()) {
+                mPost.content = mPost.content.replace("#", "")
+                var hashTagsArray = mPost.hashTags.split("#")
+                hashTagsArray
+                        .filter { mPost.content.toLowerCase().contains(it.toLowerCase()) }
+                        .forEach { mPost.content = mPost.content.replace(it, "") }
+                mCaptionTextView.text = mPost.content
             }
-
-        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.computation()).subscribe {
-            mCaptionTextView.text = mPost.content
         }
+
+
     }
 
     private fun setUpListerners() {
@@ -332,26 +334,34 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun copyDataFromClipBrod() {
-        if (!ClipBrodHelper(activity).clipBrodText.isNullOrEmpty()) {
-            try {
-                if (mPost != null) {
-                    if (ClipBrodHelper(activity).clipBrodText.equals(mPost.url)) {
-                        Toast.makeText(activity, "Post Already downloaded ", Toast.LENGTH_SHORT).show()
-                        return
-                    }
-                }
-            } catch (Ex: Exception) {
+        Observable.fromCallable(object  : Callable<String>{
+            override fun call(): String {
+                return ClipBrodHelper(activity).clipBrodText
             }
-            mEditTextInputURl.text.clear()
-            mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
-            hideKeybord()
-            checkBuildNO()
-        } else {
-            mEditTextInputURl.text.clear()
-            Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
-            mCardView.visibility = View.INVISIBLE
-            mProgressBar.visibility = View.INVISIBLE
+        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread()).subscribe{t: String ->
+            if (!t.isEmpty()){
+                try {
+                    if (mPost != null) {
+                        if (ClipBrodHelper(activity).clipBrodText.equals(mPost.url)) {
+                            Toast.makeText(activity, "Post Already downloaded ", Toast.LENGTH_SHORT).show()
+                        }else{
+                            mEditTextInputURl.text.clear()
+                            mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
+                            hideKeybord()
+                            checkBuildNO()
+                        }
+                    }
+                } catch (Ex: Exception) {
+                }
+            }else{
+                mEditTextInputURl.text.clear()
+                Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
+                mCardView.visibility = View.INVISIBLE
+                mProgressBar.visibility = View.INVISIBLE
+            }
         }
+
+
     }
 
     fun staupUI(view: View) {
@@ -374,7 +384,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     fun checkBuildNO() {
 
         if (Build.VERSION.SDK_INT > 22) {
-            if (activity.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+            if (activity!!.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
                 askPermistion()
             else {
                 val msg: String = mEditTextInputURl.text.toString()
@@ -518,7 +528,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
             } catch (ex: Exception) {
                 ex.printStackTrace()
-                activity.runOnUiThread({
+                activity!!.runOnUiThread({
                     Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
                     isSomeThingWrong = true
                     FirebaseCrash.report(Exception("Some wrong in doInBackGround() Error code 111" + ex.message))
@@ -557,7 +567,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             try {
                 if (!mPost.content.isNullOrEmpty() && isContainsColan()) {
                     mPost.content = mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length)
-                    mCaptionTextView.text = mPost.content
+
                 }
                 Picasso.with(activity).load(mPost.imageURL).into(mImage)
             } catch (Ex: Exception) {
@@ -609,7 +619,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                     mFabShareButton.visibility = View.VISIBLE
                     mNumberBar.progress = 100
                     mBitMapImageToShare = result
-                    val bitmapPath: String = MediaStore.Images.Media.insertImage(context.getContentResolver(), mBitMapImageToShare, "title", null);
+                    val bitmapPath: String = MediaStore.Images.Media.insertImage(context!!.getContentResolver(), mBitMapImageToShare, "title", null);
                     val bitmapUri: Uri = Uri.parse(bitmapPath)
                     //      Log.d(TAG, "onImageComplate " + getRealPathFromURI(bitmapUri))
                     mPost.pathToStorage = getRealPathFromURI(bitmapUri)
@@ -623,7 +633,7 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     @SuppressLint("Recycle")
     fun getRealPathFromURI(uri: Uri): String {
-        val cursor = activity.contentResolver.query(uri, null, null, null, null)
+        val cursor = activity!!.contentResolver.query(uri, null, null, null, null)
         cursor!!.moveToFirst()
         val idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
         return cursor.getString(idx)
@@ -641,9 +651,9 @@ class downloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     fun hideKeybord() {
-        val view = activity.getCurrentFocus()
+        val view = activity!!.getCurrentFocus()
         if (view != null) {
-            val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm = activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
         }
     }

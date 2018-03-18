@@ -27,8 +27,10 @@ import com.google.android.gms.ads.reward.RewardedVideoAd
 import com.google.android.gms.ads.reward.RewardedVideoAdListener
 import com.google.firebase.crash.FirebaseCrash
 import com.kekstudio.dachshundtablayout.DachshundTabLayout
-import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.webianks.easy_feedback.EasyFeedback
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import wei.mark.standout.StandOutWindow
 import java.util.*
 import kotlin.concurrent.timerTask
@@ -65,13 +67,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var mRewardedVideoAd: RewardedVideoAd
     private lateinit var mInterstitialAd: InterstitialAd
     lateinit var mAdView: AdView
-    lateinit var mTimer : Timer
+    lateinit var mTimer: Timer
 
     private val isFirstTime = "isFirstTime"
     private val interstitialTestAdd = "ca-app-pub-3940256099942544/1033173712"
     private val AdmobAppID = "ca-app-pub-5168564707064012~5058501866"
     private val interstitialRealAdd = "ca-app-pub-5168564707064012/3666631165"
-
 
 
     private lateinit var timer: Timer
@@ -84,12 +85,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val mViewPager = findViewById<ViewPager>(R.id.view_pager)
         val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
         mViewPager.adapter = pagerAdupter(supportFragmentManager)
-        MobileAds.initialize(this, AdmobAppID)
-
+        // MobileAds.initialize(this, AdmobAppID)
         // intiRewardedVideoAd()
-        loadBannerAd()
+
         mTimer = Timer();
-        mTimer.schedule(timerTask { runOnUiThread({loadIntiAdd()} )},5000);
+        mTimer.schedule(timerTask {
+            runOnUiThread({
+                MobileAds.initialize(this@MainActivity, AdmobAppID);
+                loadBannerAd();
+                loadIntiAdd()
+            })
+        }, 5000);
         mTabLayout.setupWithViewPager(mViewPager);
         mTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -110,25 +116,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
         });
-        SharedPreferencesManager.init(this, true)
-        registerClipBord()
+        //SharedPreferencesManager.init(this, true)
+         registerClipBordBroadCastReciver()
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val toggle = ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
         drawer.addDrawerListener(toggle);
         toggle.syncState()
-        try {
-            prefs = application.getSharedPreferences(isFirstTime, Context.MODE_PRIVATE)
-            val first = prefs.getBoolean(isFirstTime, true)
-            if (first) {
-                prefs.edit().putBoolean(isFirstTime, false).apply()
-                checkOverlayPermissionPermission()
-            }
-        } catch (Ex: Exception) {
-            FirebaseCrash.report(Exception("  override fun onCreate in mainActivity Error code 12 Error : " + Ex.message))
-            Toast.makeText(this@MainActivity, "Some thing wrong Error code 12 Error : " + Ex.message, Toast.LENGTH_LONG).show()
+        Observable.fromCallable {
+            try {
+                prefs = application.getSharedPreferences(isFirstTime, Context.MODE_PRIVATE)
+                val first = prefs.getBoolean(isFirstTime, true)
+                if (first) {
+                    prefs.edit().putBoolean(isFirstTime, false).apply()
 
-        }
+                }
+            } catch (Ex: Exception) {
+                FirebaseCrash.report(Exception("  override fun onCreate in mainActivity Error code 12 Error : " + Ex.message))
+                Toast.makeText(this@MainActivity, "Some thing wrong Error code 12 Error : " + Ex.message, Toast.LENGTH_LONG).show()
+
+            }
+        }.observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io()).subscribe({ checkOverlayPermissionPermission() })
+
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
     }
@@ -157,16 +166,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun loadBannerAd(){
+    private fun loadBannerAd() {
         try {
             mAdView = findViewById(R.id.adView)
             val adRequest = AdRequest.Builder().build()
             mAdView.loadAd(adRequest)
 
-        }catch (E : Exception){}
+        } catch (E: Exception) {
+        }
     }
-
-
 
 
     private fun loadRewardedVideoAd() {
@@ -194,7 +202,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     }
 
-    private fun registerClipBord() {
+    private fun registerClipBordBroadCastReciver() {
         clipboard = this@MainActivity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener(object : ClipboardManager.OnPrimaryClipChangedListener {
             override fun onPrimaryClipChanged() {
@@ -221,7 +229,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     // StandOutWindow.show(this@MainActivity, myStandout::class.java, StandOutWindow.DEFAULT_ID)
                 } catch (e: Exception) {
                     e.stackTrace
-                    FirebaseCrash.report(Exception(" private fun registerClipBord() Error code 11 Error : " + e.message))
+                    FirebaseCrash.report(Exception(" private fun registerClipBordBroadCastReciver() Error code 11 Error : " + e.message))
                     Toast.makeText(this@MainActivity, "Some thing wrong Error code 11 Error : " + e.message, Toast.LENGTH_LONG).show()
                 }
 

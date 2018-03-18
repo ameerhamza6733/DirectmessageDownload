@@ -8,6 +8,14 @@ import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.concurrent.Callable;
+
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.internal.fuseable.ScalarCallable;
+import io.reactivex.schedulers.Schedulers;
+
+
 /**
  * Created by AmeerHamza on 9/17/2017.
  */
@@ -19,6 +27,7 @@ public class ClipBrodHelper {
     }
 
     public ClipBrodHelper(Context context) {
+
         ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         if (clipboard.hasPrimaryClip()) {
             android.content.ClipDescription description = clipboard.getPrimaryClipDescription();
@@ -30,6 +39,7 @@ public class ClipBrodHelper {
             }
 
         }
+
     }
 
     public void WriteToClipBord(Context context , String data){

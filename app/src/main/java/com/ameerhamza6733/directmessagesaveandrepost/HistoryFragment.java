@@ -24,7 +24,7 @@ import java.util.Map;
  * Created by AmeerHamza on 10/6/2017.
  */
 
-public class historyFragment extends Fragment {
+public class HistoryFragment extends Fragment {
 
     private static final String TAG = "RecyclerViewFragment";
     private static final String KEY_LAYOUT_MANAGER = "layoutManager";
@@ -42,8 +42,8 @@ public class historyFragment extends Fragment {
     protected CustomAdapter mAdapter;
     protected RecyclerView.LayoutManager mLayoutManager;
     protected List<post> mDataset;
-    public static historyFragment newInstance() {
-        return new historyFragment();
+    public static HistoryFragment newInstance(int someInt) {
+        return new HistoryFragment();
     }
     @Override
     public void onCreate(Bundle savedInstanceState) {

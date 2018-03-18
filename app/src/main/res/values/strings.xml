@@ -9,4 +9,6 @@
 
     <string name="banner_ad_test_id">ca-app-pub-3940256099942544/6300978111</string>
     <string name="banner_ad_read_id">ca-app-pub-5168564707064012/8638685692</string>
+
+    <string name="device_id">B94C1B8999D3B59117198A259685D4F8</string>
 </resources>

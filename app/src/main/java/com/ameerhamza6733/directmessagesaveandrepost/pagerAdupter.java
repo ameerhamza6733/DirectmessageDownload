@@ -18,8 +18,8 @@ public class pagerAdupter extends FragmentStatePagerAdapter {
     @Override
     public Fragment getItem(int i) {
         if (i==0)
-        return downloadingFragment.Companion.newInstance();
-        else return historyFragment.newInstance();
+        return DownloadingFragment.Companion.newInstance(0);
+        else return HistoryFragment.newInstance(0);
     }
 
     @Override
