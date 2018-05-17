@@ -8,10 +8,10 @@ import android.support.v4.app.FragmentStatePagerAdapter;
  * Created by AmeerHamza on 10/6/2017.
  */
 
-public class pagerAdupter extends FragmentStatePagerAdapter {
+public class PagerAdupter extends FragmentStatePagerAdapter {
     private static final String INTA_DOWNLOAD_FEATURE[] = {"Downloader", "History"};
 
-    public pagerAdupter(FragmentManager fm) {
+    public PagerAdupter(FragmentManager fm) {
         super(fm);
     }
 

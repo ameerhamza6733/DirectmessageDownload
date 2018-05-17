@@ -32,13 +32,14 @@ import com.github.clans.fab.FloatingActionButton
 import com.golshadi.majid.core.DownloadManagerPro
 import com.golshadi.majid.report.ReportStructure
 import com.golshadi.majid.report.listener.DownloadManagerListener
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.InterstitialAd
 import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
 import io.reactivex.Observable
-import io.reactivex.Observer
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
@@ -166,6 +167,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private fun shareIntent(repost: Boolean) {
         try {
             if (mNumberBar.progress == 100) {
+
                 if (mPost.medium.equals("image"))
                     shareImageIntentToInstagram(repost)
                 else
@@ -173,6 +175,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             } else {
                 Toast.makeText(activity, "downloading sill in progress ", Toast.LENGTH_SHORT).show()
             }
+
 
         } catch (ex: Exception) {
             FirebaseCrash.report(Exception(" private fun shareIntent Error code 3 Error : " + ex.message));
@@ -218,7 +221,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var dm: DownloadManagerPro
     private var taskToken: Int = -1
     private lateinit var mBitMapImageToShare: Bitmap
-    val mPost = post()
+    val mPost = Post()
     lateinit var postKeyFromShardPraf: String
     lateinit var SettingsPrefs: SharedPreferences;
     private var manualyDownload = false
@@ -235,29 +238,18 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }.observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io()).subscribe()
         setUpListerners()
         copyDataFromClipBrod()
-
+loadIntiAdd()
         return view
     }
 
 
-    override fun onDestroy() {
-        try {
-            if (dm != null) {
-                dm.pauseDownload(taskToken)
-                dm.delete(taskToken, true)
-            }
-        } catch (e: Exception) {
-            FirebaseCrash.report(Exception("onDestroy " + e.message))
-        }
-        super.onDestroy()
-    }
 
     private fun copyHashTagToClipBord() {
         if (!mHashTagTextView.text.isEmpty()) {
             val clipbordHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
         } else {
-            Toast.makeText(activity, "No Hash tag not find in this post", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "No Hash tag not find in this Post", Toast.LENGTH_SHORT).show()
         }
 
     }
@@ -456,7 +448,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
                 if (tempPostID.equals(entry.key)) {
                     mProgressBar.visibility = View.INVISIBLE
-                    Toast.makeText(activity, "post already downloaded", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Post already downloaded", Toast.LENGTH_SHORT).show()
                     postKeyFromShardPraf = entry.value.toString()
 
 
@@ -474,6 +466,25 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         return false
     }
 
+    private lateinit var mInterstitialAd: InterstitialAd
+
+    private fun loadIntiAdd() {
+        try {
+           mInterstitialAd = InterstitialAd(activity)
+            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/3666631165"
+         mInterstitialAd.loadAd(AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build())
+            mInterstitialAd.adListener = object : AdListener() {
+                override fun onAdClosed() {
+                  mInterstitialAd.loadAd(AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build())
+                }
+
+                override fun onAdLoaded() {
+
+                }
+            }
+        } catch (E: Exception) {
+        }
+    }
     @SuppressLint("StaticFieldLeak")
     inner class grabData(val ConnURL: String) : AsyncTask<Void, Void, String>() {
         val mHashTags = StringBuilder()
@@ -483,6 +494,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         override fun onPreExecute() {
             super.onPreExecute()
             Log.d(TAG, "url =" + ConnURL)
+
             mPost.url = ConnURL;
             mProgressBar.progress = 100
             mProgressBar.visibility = View.VISIBLE
@@ -542,14 +554,16 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
             FirebaseCrash.log("onPostExecute isSomeThingWrong" + isSomeThingWrong)
-
+            if (mInterstitialAd!=null && mInterstitialAd.isLoaded){
+                mInterstitialAd.show()
+            }
             if (!isSomeThingWrong) {
 
                 UpdateUI()
                 intiDownloader()
             } else {
                 mProgressBar.visibility = View.INVISIBLE
-                Snackbar.make(mCardView, "unable to get downloading url", Snackbar.LENGTH_LONG).setAction("try again") {
+                Snackbar.make(mCardView, "unable to get downloading url", Snackbar.LENGTH_INDEFINITE).setAction("try again") {
                     if (!mEditTextInputURl.text.toString().isEmpty()) {
                         grabData(mEditTextInputURl.text.toString()).execute()
                         downloadCaption(mEditTextInputURl.text.toString())
@@ -606,6 +620,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             val download = AltexImageDownloader(object : AltexImageDownloader.OnImageLoaderListener {
                 override fun onError(error: AltexImageDownloader.ImageError) {
                     Toast.makeText(activity, "Error " + error.toString(), Toast.LENGTH_SHORT).show()
+               FirebaseCrash.report(Exception("onImagesError "+error.toString()))
                 }
 
                 override fun onProgressChange(percent: Int) {
@@ -639,7 +654,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         return cursor.getString(idx)
     }
 
-    private fun saveToPraf(mPost: post) {
+    private fun saveToPraf(mPost: Post) {
         try {
             if (SettingsPrefs.getBoolean(Settings.SHARED_PREF_CHECK_BOX_KEY, true))
                 SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);

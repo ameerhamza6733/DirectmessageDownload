@@ -9,14 +9,14 @@ android {
         applicationId "com.ameerhamza6733.directmessagesaveandrepost"
         minSdkVersion 17
         targetSdkVersion 27
-        versionCode 21
-        versionName "1.0.21"
+        versionCode 25
+        versionName "1.0.25"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

@@ -28,17 +28,18 @@
             android:name=".MainActivity"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="stateHidden">
-
-        </activity>
-        <activity android:name=".instructionActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+        </activity>
+        <activity android:name=".InstructionActivity" >
+
         </activity>
 
-        <service android:name=".myStandout" />
+        <service android:name=".MyStandout" />
 
         <activity android:name=".Settings"
             />

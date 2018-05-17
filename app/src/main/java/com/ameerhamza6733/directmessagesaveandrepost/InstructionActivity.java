@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -15,7 +14,7 @@ import com.hololo.tutorial.library.StepFragment;
 import com.hololo.tutorial.library.TutorialActivity;
 
 
-public class instructionActivity extends TutorialActivity implements StepFragment.OnButtonClickedListener {
+public class InstructionActivity extends TutorialActivity implements StepFragment.OnButtonClickedListener {
 
 
     //    private int age;
@@ -24,25 +23,22 @@ public class instructionActivity extends TutorialActivity implements StepFragmen
     public static final String IS_FIRST_TIME = "isFirstTime";
 
     public static final String COPY_LINK = "Copy Post Link";
-    public static final String COPY_LINK_MESSAGE = "1)Open instagram find your any good post\n2)click on \u2807 \n3)Click on Copy Link";
+    public static final String COPY_LINK_MESSAGE = "1)Open instagram find your any good Post\n2)click on \u2807 \n3)Click on Copy Link";
     public static final String COPY_LINK_COLOR = "#FF0957";
     public static final String COPY_LINK_BUTTON_TITLE = "try now";
 
     public static final String PAST_LIKK = "Past Post Link";
-    public static final String PAST_LINK_MESSAGE = "1)Open this app again \n2)past link into text field\n3)click on save post button";
+    public static final String PAST_LINK_MESSAGE = "1)Open this app again \n2)past link into text field\n3)click on save Post button";
     public static final String PAST_LINK_COLOR = "#00D4BA";
     public static final String PAST_LINK_BUTTON_TITLE = "ok";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getApplication().getSharedPreferences(instructionActivity.IS_FIRST_TIME, Context.MODE_PRIVATE).getBoolean(IS_FIRST_TIME,true)){
             writeToSharedPraf();
             show_Instructons_fragment(COPY_LINK, COPY_LINK_MESSAGE, COPY_LINK_COLOR, COPY_LINK_BUTTON_TITLE, R.drawable.howto);
             show_Instructons_fragment(PAST_LIKK, PAST_LINK_MESSAGE, PAST_LINK_COLOR, PAST_LINK_BUTTON_TITLE,R.drawable.howto2);
-        }else {
-            startActivity(new Intent(this,MainActivity.class));
-        }
+
 
     }
 
@@ -57,9 +53,9 @@ public class instructionActivity extends TutorialActivity implements StepFragmen
 
     private void writeToSharedPraf() {
         try {
-            SharedPreferences preferences = getApplication().getSharedPreferences(instructionActivity.IS_FIRST_TIME, Context.MODE_PRIVATE);
+            SharedPreferences preferences = getApplication().getSharedPreferences(InstructionActivity.IS_FIRST_TIME, Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean(KEY_SHARED_PREF_IS_FIRST_TIME, false);
+            editor.putBoolean(IS_FIRST_TIME, false);
             editor.apply();
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,11 +73,17 @@ public class instructionActivity extends TutorialActivity implements StepFragmen
                 }
                 break;
             case PAST_LINK_BUTTON_TITLE:
+                startActivity(new Intent(this,MainActivity.class));
               finish();
                 break;
 
         }
     }
 
+    @Override
+    public void finishTutorial() {
+        startActivity(new Intent(this,MainActivity.class));
+        super.finishTutorial();
+    }
 }
 

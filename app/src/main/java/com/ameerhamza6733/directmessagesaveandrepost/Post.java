@@ -4,7 +4,7 @@ package com.ameerhamza6733.directmessagesaveandrepost;
  * Created by AmeerHamza on 9/15/2017.
  */
 
-public class post {
+public class Post {
     private String imageURL;
     private String videoURL;
     private StringBuilder hashTags;
@@ -17,7 +17,7 @@ public class post {
 
 
 
-    public post() {
+    public Post() {
 
     }
 

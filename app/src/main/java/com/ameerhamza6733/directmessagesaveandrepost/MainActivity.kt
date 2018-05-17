@@ -21,6 +21,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import com.ameerhamza6733.directmessagesaveandrepost.InstructionActivity.IS_FIRST_TIME
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.reward.RewardItem
 import com.google.android.gms.ads.reward.RewardedVideoAd
@@ -33,7 +34,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import wei.mark.standout.StandOutWindow
 import java.util.*
-import kotlin.concurrent.timerTask
 
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, RewardedVideoAdListener {
@@ -65,11 +65,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var clipboard: ClipboardManager
     private lateinit var prefs: SharedPreferences
     private lateinit var mRewardedVideoAd: RewardedVideoAd
-    private lateinit var mInterstitialAd: InterstitialAd
-    lateinit var mAdView: AdView
+
+
     lateinit var mTimer: Timer
 
-    private val isFirstTime = "isFirstTime"
+    companion object {
+        lateinit var mAdView: AdView
+        private lateinit var mInterstitialAd: InterstitialAd
+        private var couter = 1
+    }
+
+
     private val interstitialTestAdd = "ca-app-pub-3940256099942544/1033173712"
     private val AdmobAppID = "ca-app-pub-5168564707064012~5058501866"
     private val interstitialRealAdd = "ca-app-pub-5168564707064012/3666631165"
@@ -84,18 +90,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setSupportActionBar(toolbar)
         val mViewPager = findViewById<ViewPager>(R.id.view_pager)
         val mTabLayout = findViewById<DachshundTabLayout>(R.id.tab_layout)
-        mViewPager.adapter = pagerAdupter(supportFragmentManager)
+        mViewPager.adapter = PagerAdupter(supportFragmentManager)
         // MobileAds.initialize(this, AdmobAppID)
         // intiRewardedVideoAd()
 
-        mTimer = Timer();
-        mTimer.schedule(timerTask {
-            runOnUiThread({
-                MobileAds.initialize(this@MainActivity, AdmobAppID);
-                loadBannerAd();
-                loadIntiAdd()
-            })
-        }, 5000);
         mTabLayout.setupWithViewPager(mViewPager);
         mTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -117,7 +115,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         });
         //SharedPreferencesManager.init(this, true)
-         registerClipBordBroadCastReciver()
+        registerClipBordBroadCastReciver()
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val toggle = ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
@@ -125,10 +123,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         toggle.syncState()
         Observable.fromCallable {
             try {
-                prefs = application.getSharedPreferences(isFirstTime, Context.MODE_PRIVATE)
-                val first = prefs.getBoolean(isFirstTime, true)
+                prefs = application.getSharedPreferences(InstructionActivity.IS_FIRST_TIME, Context.MODE_PRIVATE)
+                val first = prefs.getBoolean(IS_FIRST_TIME, true)
                 if (first) {
-                    prefs.edit().putBoolean(isFirstTime, false).apply()
+                    this@MainActivity.startActivity(Intent(this@MainActivity, InstructionActivity::class.java))
+                    prefs.edit().putBoolean(IS_FIRST_TIME, false).apply()
 
                 }
             } catch (Ex: Exception) {
@@ -140,6 +139,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
+        MobileAds.initialize(this@MainActivity, AdmobAppID);
+        loadBannerAd();
+        //loadIntiAdd()
+
     }
 
     private fun intiRewardedVideoAd() {
@@ -156,10 +159,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         try {
             mInterstitialAd = InterstitialAd(this)
             mInterstitialAd.adUnitId = interstitialRealAdd
-            mInterstitialAd.loadAd(AdRequest.Builder().build())
+            mInterstitialAd.loadAd(AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build())
             mInterstitialAd.adListener = object : AdListener() {
                 override fun onAdClosed() {
-                    mInterstitialAd.loadAd(AdRequest.Builder().build())
+                    mInterstitialAd.loadAd(AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build())
                 }
             }
         } catch (E: Exception) {
@@ -169,7 +172,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun loadBannerAd() {
         try {
             mAdView = findViewById(R.id.adView)
-            val adRequest = AdRequest.Builder().build()
+            val adRequest = AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build()
             mAdView.loadAd(adRequest)
 
         } catch (E: Exception) {
@@ -214,19 +217,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
                                 if (p0.toInt() == 4000) {
                                     //Log.d(TAG,"showing stand out")
-                                    StandOutWindow.show(this@MainActivity, myStandout::class.java, StandOutWindow.DEFAULT_ID)
+                                    StandOutWindow.show(this@MainActivity, MyStandout::class.java, StandOutWindow.DEFAULT_ID)
                                 }
                             }
 
                             override fun onFinish() {
-                                if (myStandout.isRunning)
-                                    StandOutWindow.close(this@MainActivity, myStandout::class.java, StandOutWindow.DEFAULT_ID)
+                                if (MyStandout.isRunning)
+                                    StandOutWindow.close(this@MainActivity, MyStandout::class.java, StandOutWindow.DEFAULT_ID)
 
                             }
 
                         }.start()
                     }
-                    // StandOutWindow.show(this@MainActivity, myStandout::class.java, StandOutWindow.DEFAULT_ID)
+                    // StandOutWindow.show(this@MainActivity, MyStandout::class.java, StandOutWindow.DEFAULT_ID)
                 } catch (e: Exception) {
                     e.stackTrace
                     FirebaseCrash.report(Exception(" private fun registerClipBordBroadCastReciver() Error code 11 Error : " + e.message))
@@ -262,6 +265,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onResume() {
         super.onResume()
+        try {
+            couter++
+            if (couter > 1 && mInterstitialAd != null && mInterstitialAd.isLoaded) {
+                mInterstitialAd.show()
+            }
+        } catch (E: Exception) {
+            E.printStackTrace()
+        }
 
     }
 

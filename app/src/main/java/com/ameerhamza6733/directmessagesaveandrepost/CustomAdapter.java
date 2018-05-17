@@ -25,7 +25,7 @@ import java.util.List;
 class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.ViewHolder> {
 private static final String TAG = "CustomAdapter";
 
-private List<post> mDataSet;
+private List<Post> mDataSet;
 
 // BEGIN_INCLUDE(recyclerViewSampleViewHolder)
 /**
@@ -87,7 +87,7 @@ public static class ViewHolder extends RecyclerView.ViewHolder {
      *
      * @param dataSet String[] containing the data to populate views to be used by RecyclerView.
      */
-    public CustomAdapter(List<post> dataSet) {
+    public CustomAdapter(List<Post> dataSet) {
         mDataSet = dataSet;
     }
 
@@ -123,7 +123,7 @@ public static class ViewHolder extends RecyclerView.ViewHolder {
                       new ClipBrodHelper().WriteToClipBord(view.getContext(),mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString());
 
                   }catch (NullPointerException n){
-                      Toast.makeText(view.getContext(),"NO Hash tag found for this post",Toast.LENGTH_SHORT).show();
+                      Toast.makeText(view.getContext(),"NO Hash tag found for this Post",Toast.LENGTH_SHORT).show();
                   }catch (Exception ex){
                       Toast.makeText(view.getContext(),"Some thing wrong unable to copy hash tag to clipbord",Toast.LENGTH_SHORT).show();
                   }

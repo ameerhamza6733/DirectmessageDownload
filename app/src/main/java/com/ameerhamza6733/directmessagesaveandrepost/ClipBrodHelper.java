@@ -21,7 +21,7 @@ import io.reactivex.schedulers.Schedulers;
  */
 
 public class ClipBrodHelper {
-    private String clipBrodText;
+    private String clipBrodText="";
 
     public ClipBrodHelper() {// help to make empty obj in kotlin
     }
@@ -36,6 +36,7 @@ public class ClipBrodHelper {
                 Log.d(this.getClass().getSimpleName(), "clipBordData" + data.getItemAt(0).getText());
                 if (isIntigramURL(data.getItemAt(0).getText().toString()))
                     clipBrodText = String.valueOf(data.getItemAt(0).getText());
+
             }
 
         }

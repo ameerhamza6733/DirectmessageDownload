@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.Toast;
 
 import wei.mark.standout.StandOutWindow;
 import wei.mark.standout.constants.StandOutFlags;
@@ -15,7 +14,23 @@ import wei.mark.standout.ui.Window;
  * Created by AmeerHamza on 10/5/2017.
  */
 
-public class myStandout extends StandOutWindow {
+public class MyStandout extends StandOutWindow {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+    }
+
+
+    @Override
+    public String getPersistentNotificationMessage(int id) {
+        return "Click to close.";
+    }
+
+    @Override
+    public Intent getPersistentNotificationIntent(int id) {
+        return StandOutWindow.getCloseIntent(this, MyStandout.class, id);
+    }
     public static boolean isRunning=false;
     @Override
     public String getAppName() {
@@ -47,7 +62,7 @@ public class myStandout extends StandOutWindow {
 
     @Override
     public StandOutLayoutParams getParams(int id, Window window) {
-        return  new StandOutLayoutParams(id, 330, 300,
+        return  new StandOutLayoutParams(id, 200, 200,
                 StandOutLayoutParams.BOTTOM, StandOutLayoutParams.RIGHT);
     }
     @Override

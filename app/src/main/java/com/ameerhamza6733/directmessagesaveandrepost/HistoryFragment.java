@@ -41,7 +41,7 @@ public class HistoryFragment extends Fragment {
     protected RecyclerView mRecyclerView;
     protected CustomAdapter mAdapter;
     protected RecyclerView.LayoutManager mLayoutManager;
-    protected List<post> mDataset;
+    protected List<Post> mDataset;
     public static HistoryFragment newInstance(int someInt) {
         return new HistoryFragment();
     }
@@ -147,7 +147,7 @@ public class HistoryFragment extends Fragment {
             if (entry == null || entry.getValue() == null) continue;
             Log.e("SharedPreferenceManager", entry.getKey() + ": " + entry.getValue().toString());
 
-            mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), post.class));
+            mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), Post.class));
         }
         removeIFPostNotExsitInDevice();
     }
@@ -155,7 +155,7 @@ public class HistoryFragment extends Fragment {
     private void removeIFPostNotExsitInDevice() throws Exception{
         Iterator itr = mDataset.iterator();
         while (itr.hasNext()) {
-            post mPost = (post) itr.next();
+            Post mPost = (Post) itr.next();
             if (mPost.getMedium().equalsIgnoreCase("image") || (mPost.getMedium().equalsIgnoreCase("video") ))
                 if(new File(mPost.getPathToStorage()).exists()){
 
