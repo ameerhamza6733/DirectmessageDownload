@@ -125,7 +125,7 @@ public class SharedPreferencesManager {
         if (type == Integer.class) {
             Integer value = sharedPreference.getInt(key, 0);
             return (T) value;
-        } else if (type == Boolean.class) {
+        } else if (type == boolean.class) {
             Boolean value = sharedPreference.getBoolean(key, false);
             return (T) value;
         } else if (type == Float.class) {

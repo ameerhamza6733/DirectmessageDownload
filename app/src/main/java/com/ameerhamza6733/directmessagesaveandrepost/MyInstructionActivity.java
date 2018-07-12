@@ -54,7 +54,7 @@ public class MyInstructionActivity extends TutorialActivity implements StepFragm
 
     private void writeToSharedPraf() {
         try {
-            SharedPreferencesManager.getInstance().putValue(IS_FIRST_TIME, true);
+            SharedPreferencesManager.getInstance().putValue(IS_FIRST_TIME, false);
         } catch (Exception e) {
             e.printStackTrace();
         }

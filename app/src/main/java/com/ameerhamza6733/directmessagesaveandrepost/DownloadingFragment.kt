@@ -3,6 +3,7 @@ package com.ameerhamza6733.directmessagesaveandrepost
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -13,6 +14,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.support.design.widget.Snackbar
 import android.support.v4.app.Fragment
+import android.support.v7.app.AlertDialog
 import android.support.v7.widget.CardView
 import android.util.Log
 import android.view.LayoutInflater
@@ -20,7 +22,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import com.ameerhamza6733.directmessagesaveandrepost.MyInstructionActivity.IS_FIRST_TIME
 import com.ameerhamza6733.directmessagesaveandrepost.Settings.ATO_START_DOWNLOADING
 import com.android.volley.Request
 import com.android.volley.Response
@@ -33,25 +34,18 @@ import com.github.clans.fab.FloatingActionButton
 import com.golshadi.majid.core.DownloadManagerPro
 import com.golshadi.majid.report.ReportStructure
 import com.golshadi.majid.report.listener.DownloadManagerListener
-import com.google.ads.consent.ConsentInformation
-import com.google.ads.consent.ConsentStatus
+import com.google.ads.consent.*
 import com.google.ads.mediation.admob.AdMobAdapter
+import com.google.android.gms.ads.*
+import com.google.android.gms.ads.reward.RewardedVideoAd
 import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
-
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
-import com.google.ads.consent.ConsentStatus.NON_PERSONALIZED
-import com.google.ads.consent.ConsentStatus.PERSONALIZED
-import com.google.ads.consent.ConsentForm;
-import com.google.ads.consent.ConsentFormListener;
-import com.google.ads.consent.ConsentInfoUpdateListener;
-import com.google.android.gms.ads.*
-import com.google.android.gms.ads.reward.RewardedVideoAd
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -224,7 +218,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mFabShareButton: FloatingActionButton
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
-    private lateinit var rootView:View;
+    private lateinit var rootView: View;
 
 
     private lateinit var dm: DownloadManagerPro
@@ -240,17 +234,21 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         val view = inflater.inflate(R.layout.fragment_download, container, false)
 
         staupUI(view)
-rootView=view
+        rootView = view
         return view
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         SharedPreferencesManager.init(activity, true)
-        var firstTIme = SharedPreferencesManager.getInstance().getValue(IS_FIRST_TIME, Boolean::class.java, false)
+      var rateMe =  SharedPreferencesManager.getInstance().getValue("RateMe", Boolean::class.java,true)
+        var firstTIme = SharedPreferencesManager.getInstance().getValue("isFirstTime", Boolean::class.java, true)
         if (firstTIme) {
             val intent = Intent(activity, MyInstructionActivity::class.java)
             activity?.startActivity(intent)
+        }
+        if (!firstTIme && rateMe){
+            showRateMe()
         }
         atoSave = SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING, Boolean::class.java, true)
 
@@ -261,7 +259,11 @@ rootView=view
     }
 
     private fun copyHashTagToClipBord() {
-
+        if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
+            mRewardedVideoAd?.show()
+        } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
+            mInterstitialAd?.show()
+        }
         if (!mHashTagTextView.text.isEmpty()) {
             val clipbordHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
@@ -272,6 +274,11 @@ rootView=view
     }
 
     private fun CopyBoth() {
+        if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
+            mRewardedVideoAd?.show()
+        } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
+            mInterstitialAd?.show()
+        }
         var hashTagAndCaption = "";
         if (!mHashTagTextView.text.isEmpty()) {
             hashTagAndCaption = mHashTagTextView.text.toString();
@@ -284,11 +291,7 @@ rootView=view
     }
 
     private fun copyCaptionToClipBord() {
-        if (mRewardedVideoAd!=null && mRewardedVideoAd?.isLoaded!!){
-            mRewardedVideoAd?.show()
-        }else if (mInterstitialAd!=null && mInterstitialAd?.isLoaded!!){
-           mInterstitialAd?.show()
-        }
+
         if (!mCaptionTextView.text.isEmpty()) {
 
             val clipbordHelper = ClipBrodHelper()
@@ -363,7 +366,7 @@ rootView=view
                         mEditTextInputURl.text.clear()
                         mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
                         hideKeybord()
-                        checkBuildNO()
+
                     }
                 }
             } catch (Ex: Exception) {
@@ -374,16 +377,7 @@ rootView=view
             mCardView.visibility = View.INVISIBLE
             mProgressBar.visibility = View.INVISIBLE
         }
-//        Observable.fromCallable(object : Callable<String> {
-//            override fun call(): String {
-//
-//                return ClipBrodHelper(activity).clipBrodText
-//            }
-//        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread()).subscribe { t: String ->
-//
-//        }
-//
-//
+
     }
 
     fun staupUI(view: View) {
@@ -714,7 +708,7 @@ rootView=view
         })
     }
 
-    private var form: ConsentForm?=null
+    private var form: ConsentForm? = null
 
     private fun requestConsent() {
         var privacyUrl: URL? = null
@@ -724,7 +718,7 @@ rootView=view
             watch this video how to create privacy policy in mint
             https://www.youtube.com/watch?v=lSWSxyzwV-g&t=140s
             */
-            privacyUrl = URL("")
+            privacyUrl = URL("http://alphapk6733.blogspot.com/2018/07/privacy-policy-for-copy-caption-and-tag.html")
         } catch (e: MalformedURLException) {
             e.printStackTrace()
             // Handle error.
@@ -779,7 +773,7 @@ rootView=view
 
         mInterstitialAd = InterstitialAd(activity?.baseContext)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-        val mAdView:AdView = rootView.findViewById(R.id.adView);
+        val mAdView: AdView = rootView.findViewById(R.id.adView);
         val adRequest = AdRequest.Builder()
                 .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
                 .build()
@@ -794,19 +788,19 @@ rootView=view
 
 
         mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity?.baseContext)
-        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535",adRequest)
+        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
 
 
     }
 
-    private  var mInterstitialAd: InterstitialAd?=null
-    private var mRewardedVideoAd:RewardedVideoAd?=null
+    private var mInterstitialAd: InterstitialAd? = null
+    private var mRewardedVideoAd: RewardedVideoAd? = null
 
     private fun showNonPersonalizedAds() {
         ConsentInformation.getInstance(activity?.baseContext).consentStatus = ConsentStatus.NON_PERSONALIZED
 
         MobileAds.initialize(activity?.baseContext, "ca-app-pub-5168564707064012~5058501866");
-         val mAdView:AdView = rootView.findViewById(R.id.adView);
+        val mAdView: AdView = rootView.findViewById(R.id.adView);
         val adRequest = AdRequest.Builder()
                 .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
                 .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
@@ -837,7 +831,6 @@ rootView=view
     }
 
 
-
     private fun showForm() {
         if (form == null) {
             Log.d(TAG, "Consent form is null")
@@ -850,5 +843,22 @@ rootView=view
         }
     }
 
+    private fun showRateMe() {
+        val builder: AlertDialog.Builder
+
+        builder = AlertDialog.Builder(activity!!)
+        builder.setTitle("Rate Me")
+                .setMessage("Copy caption and tag need your help please rate us on google play")
+                .setPositiveButton("Please Rate Me") { dialog, which ->
+                    // continue with delete
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + activity?.packageName)))
+                }
+                .setNegativeButton("never"){dialog, which ->
+                    SharedPreferencesManager.getInstance().putValue("RateMe", false)
+
+                }
+                .setIcon(android.R.drawable.star_big_on)
+                .show()
+    }
 
 }
