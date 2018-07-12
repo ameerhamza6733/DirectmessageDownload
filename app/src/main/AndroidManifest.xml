@@ -3,11 +3,11 @@
     package="com.ameerhamza6733.directmessagesaveandrepost">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
-
+android:name=".MyApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -35,11 +35,11 @@
             </intent-filter>
 
         </activity>
-        <activity android:name=".InstructionActivity" >
+        <activity android:name=".MyInstructionActivity" >
 
         </activity>
 
-        <service android:name=".MyStandout" />
+
 
         <activity android:name=".Settings"
             />

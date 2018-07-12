@@ -2,6 +2,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_history"
+            android:icon="@drawable/ic_history_black_24dp"
+            android:title="History" />
         <item
             android:id="@+id/nav_rate"
             android:icon="@drawable/ic_star_black_24dp"
@@ -11,12 +14,6 @@
             android:icon="@drawable/ic_feedback_black_24dp"
             android:title="Feed back" />
 
-        <item android:id="@+id/nav_facebook_stalker"
-            android:icon="@drawable/ic_person_black_24dp"
-            android:title="Facebook stalkers app" />
-        <item android:id="@+id/nav_share_this_app"
-            android:icon="@drawable/ic_share_black_24dp"
-            android:title="Share this app" />
         <item
             android:id="@+id/nav_action_settings"
             android:icon="@drawable/ic_settings_black_24dp"

@@ -11,6 +11,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
 import com.google.firebase.crash.FirebaseCrash;
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 
@@ -30,21 +33,17 @@ public class HistoryFragment extends Fragment {
     private static final String KEY_LAYOUT_MANAGER = "layoutManager";
     private static final int SPAN_COUNT = 2;
     private static final int DATASET_COUNT = 60;
-
-    private enum LayoutManagerType {
-        GRID_LAYOUT_MANAGER,
-        LINEAR_LAYOUT_MANAGER
-    }
-
     protected LayoutManagerType mCurrentLayoutManagerType;
-
     protected RecyclerView mRecyclerView;
-    protected CustomAdapter mAdapter;
+    protected HistoryAdapter mAdapter;
     protected RecyclerView.LayoutManager mLayoutManager;
     protected List<Post> mDataset;
+    private static InterstitialAd mInterstitialAd=null;
+
     public static HistoryFragment newInstance(int someInt) {
         return new HistoryFragment();
     }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,17 +83,35 @@ public class HistoryFragment extends Fragment {
         return rootView;
     }
 
+    private void loadIntiAdd() {
+
+          mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-5168564707064012/3666631165");
+        mInterstitialAd.loadAd(new AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                super.onAdLoaded();
+
+            }
+        });
+
+    }
+
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
-        if (isVisibleToUser)
+        if (isVisibleToUser) {
             try {
                 initDataset();
             } catch (Exception e) {
                 e.printStackTrace();
-                FirebaseCrash.report(new Exception(" public void setUserVisibleHint Error code 10 Error : "+e.getMessage()));
-                Toast.makeText(getActivity(),"unable to load history if you just update your app then make sure uninstall this app first then reinstall Error code 10",Toast.LENGTH_LONG).show();
+                FirebaseCrash.report(new Exception(" public void setUserVisibleHint Error code 10 Error : " + e.getMessage()));
+                Toast.makeText(getActivity(), "unable to load history if you just update your app then make sure uninstall this app first then reinstall Error code 10", Toast.LENGTH_LONG).show();
             }
+            loadIntiAdd();
+        }
+
     }
 
     /**
@@ -146,26 +163,38 @@ public class HistoryFragment extends Fragment {
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             if (entry == null || entry.getValue() == null) continue;
             Log.e("SharedPreferenceManager", entry.getKey() + ": " + entry.getValue().toString());
+            try {
+                mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), Post.class));
 
-            mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), Post.class));
+            } catch (ClassCastException c) {
+                c.printStackTrace();
+
+            }
+            //  mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), Post.class));
+
         }
         removeIFPostNotExsitInDevice();
     }
 
-    private void removeIFPostNotExsitInDevice() throws Exception{
+    private void removeIFPostNotExsitInDevice() throws Exception {
         Iterator itr = mDataset.iterator();
         while (itr.hasNext()) {
             Post mPost = (Post) itr.next();
-            if (mPost.getMedium().equalsIgnoreCase("image") || (mPost.getMedium().equalsIgnoreCase("video") ))
-                if(new File(mPost.getPathToStorage()).exists()){
+            if (mPost.getMedium().equalsIgnoreCase("image") || (mPost.getMedium().equalsIgnoreCase("video")))
+                if (new File(mPost.getPathToStorage()).exists()) {
 
-               } else {
-                itr.remove();
-                mDataset.remove(mPost);
-                SharedPreferencesManager.getInstance().remove(mPost.getPostID());
-            }
+                } else {
+                    itr.remove();
+                    mDataset.remove(mPost);
+                    SharedPreferencesManager.getInstance().remove(mPost.getPostID());
+                }
         }
-        mAdapter = new CustomAdapter(mDataset);
+        mAdapter = new HistoryAdapter(mDataset);
         mRecyclerView.setAdapter(mAdapter);
+    }
+
+    private enum LayoutManagerType {
+        GRID_LAYOUT_MANAGER,
+        LINEAR_LAYOUT_MANAGER
     }
 }

@@ -3,7 +3,7 @@ package com.ameerhamza6733.directmessagesaveandrepost
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.SharedPreferences
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
@@ -20,7 +20,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import com.ameerhamza6733.directmessagesaveandrepost.Settings.SHARED_PREFF_SETTINGS_NAME
+import com.ameerhamza6733.directmessagesaveandrepost.MyInstructionActivity.IS_FIRST_TIME
+import com.ameerhamza6733.directmessagesaveandrepost.Settings.ATO_START_DOWNLOADING
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -32,21 +33,27 @@ import com.github.clans.fab.FloatingActionButton
 import com.golshadi.majid.core.DownloadManagerPro
 import com.golshadi.majid.report.ReportStructure
 import com.golshadi.majid.report.listener.DownloadManagerListener
-import com.google.android.gms.ads.AdListener
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.InterstitialAd
+import com.google.ads.consent.ConsentInformation
+import com.google.ads.consent.ConsentStatus
+import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
-import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
+
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
-import java.util.concurrent.Callable
+import com.google.ads.consent.ConsentStatus.NON_PERSONALIZED
+import com.google.ads.consent.ConsentStatus.PERSONALIZED
+import com.google.ads.consent.ConsentForm;
+import com.google.ads.consent.ConsentFormListener;
+import com.google.ads.consent.ConsentInfoUpdateListener;
+import com.google.android.gms.ads.*
+import com.google.android.gms.ads.reward.RewardedVideoAd
+import java.net.MalformedURLException
+import java.net.URL
 
 /**
  * Created by AmeerHamza on 10/6/2017.
@@ -165,6 +172,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun shareIntent(repost: Boolean) {
+
         try {
             if (mNumberBar.progress == 100) {
 
@@ -216,6 +224,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mFabShareButton: FloatingActionButton
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
+    private lateinit var rootView:View;
 
 
     private lateinit var dm: DownloadManagerPro
@@ -223,28 +232,36 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mBitMapImageToShare: Bitmap
     val mPost = Post()
     lateinit var postKeyFromShardPraf: String
-    lateinit var SettingsPrefs: SharedPreferences;
+
     private var manualyDownload = false
+    private var atoSave = true;
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
 
         staupUI(view)
-        Observable.fromCallable {
-            SharedPreferencesManager.init(activity, true)
-            SettingsPrefs = activity!!.getSharedPreferences(SHARED_PREFF_SETTINGS_NAME, Context.MODE_PRIVATE)
-            dm = DownloadManagerPro(activity)
-            dm.init("DMinstaDownload/", 12, this)
-        }.observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io()).subscribe()
-        setUpListerners()
-        copyDataFromClipBrod()
-loadIntiAdd()
+rootView=view
         return view
     }
 
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        SharedPreferencesManager.init(activity, true)
+        var firstTIme = SharedPreferencesManager.getInstance().getValue(IS_FIRST_TIME, Boolean::class.java, false)
+        if (firstTIme) {
+            val intent = Intent(activity, MyInstructionActivity::class.java)
+            activity?.startActivity(intent)
+        }
+        atoSave = SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING, Boolean::class.java, true)
 
+
+        setUpListerners()
+        copyDataFromClipBrod()
+        checkForConsent();
+    }
 
     private fun copyHashTagToClipBord() {
+
         if (!mHashTagTextView.text.isEmpty()) {
             val clipbordHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
@@ -267,6 +284,11 @@ loadIntiAdd()
     }
 
     private fun copyCaptionToClipBord() {
+        if (mRewardedVideoAd!=null && mRewardedVideoAd?.isLoaded!!){
+            mRewardedVideoAd?.show()
+        }else if (mInterstitialAd!=null && mInterstitialAd?.isLoaded!!){
+           mInterstitialAd?.show()
+        }
         if (!mCaptionTextView.text.isEmpty()) {
 
             val clipbordHelper = ClipBrodHelper()
@@ -325,35 +347,43 @@ loadIntiAdd()
 
     }
 
+    override fun onPause() {
+        super.onPause()
+        if (mEditTextInputURl != null)
+            mEditTextInputURl.setText("")
+    }
+
     private fun copyDataFromClipBrod() {
-        Observable.fromCallable(object  : Callable<String>{
-            override fun call(): String {
-                return ClipBrodHelper(activity).clipBrodText
-            }
-        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread()).subscribe{t: String ->
-            if (!t.isEmpty()){
-                try {
-                    if (mPost != null) {
-                        if (ClipBrodHelper(activity).clipBrodText.equals(mPost.url)) {
-                            Toast.makeText(activity, "Post Already downloaded ", Toast.LENGTH_SHORT).show()
-                        }else{
-                            mEditTextInputURl.text.clear()
-                            mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
-                            hideKeybord()
-                            checkBuildNO()
-                        }
+        if (!ClipBrodHelper(activity).clipBrodText.isNullOrEmpty()) {
+            try {
+                if (mPost != null) {
+                    if (ClipBrodHelper(activity).clipBrodText.equals(mPost.url)) {
+                        Toast.makeText(activity, "Post Already downloaded ", Toast.LENGTH_SHORT).show()
+                    } else {
+                        mEditTextInputURl.text.clear()
+                        mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
+                        hideKeybord()
+                        checkBuildNO()
                     }
-                } catch (Ex: Exception) {
                 }
-            }else{
-                mEditTextInputURl.text.clear()
-                Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
-                mCardView.visibility = View.INVISIBLE
-                mProgressBar.visibility = View.INVISIBLE
+            } catch (Ex: Exception) {
             }
+        } else {
+            mEditTextInputURl.text.clear()
+            Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
+            mCardView.visibility = View.INVISIBLE
+            mProgressBar.visibility = View.INVISIBLE
         }
-
-
+//        Observable.fromCallable(object : Callable<String> {
+//            override fun call(): String {
+//
+//                return ClipBrodHelper(activity).clipBrodText
+//            }
+//        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread()).subscribe { t: String ->
+//
+//        }
+//
+//
     }
 
     fun staupUI(view: View) {
@@ -383,13 +413,8 @@ loadIntiAdd()
 
                 if (!msg.equals(""))
                     if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
-                        if (SettingsPrefs.getBoolean(Settings.ADO_DOWNLOADING_START_KEY, true) || manualyDownload)
-                            if (!mEditTextInputURl.text.toString().isEmpty()) {
-                                grabData(mEditTextInputURl.text.toString()).execute()
-                                downloadCaption(mEditTextInputURl.text.toString())
-                            } else {
-                                mProgressBar.visibility = View.INVISIBLE
-                            }
+
+                        intiDownloader()
             }
 
         } else {
@@ -397,15 +422,19 @@ loadIntiAdd()
 
             if (!msg.equals(""))
                 if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
-                    if (SettingsPrefs.getBoolean(Settings.ADO_DOWNLOADING_START_KEY, true) || manualyDownload) {
-                        if (!mEditTextInputURl.text.toString().isEmpty()) {
-                            grabData(mEditTextInputURl.text.toString()).execute()
-                            downloadCaption(mEditTextInputURl.text.toString())
-                        }
+                    intiDownloader()
+        }
+    }
 
-                    } else {
-                        mProgressBar.visibility = View.INVISIBLE
-                    }
+    private fun intiDownloader() {
+        if (atoSave || manualyDownload) {
+            if (!mEditTextInputURl.text.toString().isEmpty()) {
+                grabData(mEditTextInputURl.text.toString()).execute()
+                downloadCaption(mEditTextInputURl.text.toString())
+            }
+
+        } else {
+            mProgressBar.visibility = View.INVISIBLE
         }
     }
 
@@ -419,14 +448,8 @@ loadIntiAdd()
 
                         if (!msg.equals(""))
                             if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
-                                if (SettingsPrefs.getBoolean(Settings.ADO_DOWNLOADING_START_KEY, true) || manualyDownload)
-                                    if (!mEditTextInputURl.text.toString().isEmpty()) {
-                                        grabData(mEditTextInputURl.text.toString()).execute()
-                                        downloadCaption(mEditTextInputURl.text.toString())
-                                    } else {
-                                        mProgressBar.visibility = View.INVISIBLE
-                                    }
-                        //  grabData(mEditTextInputURl.text.toString()).execute()
+                                intiDownloader()
+                        grabData(mEditTextInputURl.text.toString()).execute()
                     }
 
                     override fun onDenied(permission: String) {
@@ -448,7 +471,7 @@ loadIntiAdd()
 
                 if (tempPostID.equals(entry.key)) {
                     mProgressBar.visibility = View.INVISIBLE
-                    Toast.makeText(activity, "Post already downloaded", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Post already downloaded check History tab ", Toast.LENGTH_SHORT).show()
                     postKeyFromShardPraf = entry.value.toString()
 
 
@@ -466,25 +489,7 @@ loadIntiAdd()
         return false
     }
 
-    private lateinit var mInterstitialAd: InterstitialAd
 
-    private fun loadIntiAdd() {
-        try {
-           mInterstitialAd = InterstitialAd(activity)
-            mInterstitialAd.adUnitId = "ca-app-pub-5168564707064012/3666631165"
-         mInterstitialAd.loadAd(AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build())
-            mInterstitialAd.adListener = object : AdListener() {
-                override fun onAdClosed() {
-                  mInterstitialAd.loadAd(AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build())
-                }
-
-                override fun onAdLoaded() {
-
-                }
-            }
-        } catch (E: Exception) {
-        }
-    }
     @SuppressLint("StaticFieldLeak")
     inner class grabData(val ConnURL: String) : AsyncTask<Void, Void, String>() {
         val mHashTags = StringBuilder()
@@ -554,9 +559,7 @@ loadIntiAdd()
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
             FirebaseCrash.log("onPostExecute isSomeThingWrong" + isSomeThingWrong)
-            if (mInterstitialAd!=null && mInterstitialAd.isLoaded){
-                mInterstitialAd.show()
-            }
+
             if (!isSomeThingWrong) {
 
                 UpdateUI()
@@ -603,6 +606,8 @@ loadIntiAdd()
 
 
                 if (mPost.medium != "image") {
+                    dm = DownloadManagerPro(activity)
+                    dm.init("DMinstaDownload/", 12, this@DownloadingFragment)
                     taskToken = dm.addTask(mPost.postID, mPost.videoURL, true, false)
                     dm.startDownload(taskToken)
                 } else
@@ -620,7 +625,7 @@ loadIntiAdd()
             val download = AltexImageDownloader(object : AltexImageDownloader.OnImageLoaderListener {
                 override fun onError(error: AltexImageDownloader.ImageError) {
                     Toast.makeText(activity, "Error " + error.toString(), Toast.LENGTH_SHORT).show()
-               FirebaseCrash.report(Exception("onImagesError "+error.toString()))
+                    FirebaseCrash.report(Exception("onImagesError " + error.toString()))
                 }
 
                 override fun onProgressChange(percent: Int) {
@@ -656,7 +661,7 @@ loadIntiAdd()
 
     private fun saveToPraf(mPost: Post) {
         try {
-            if (SettingsPrefs.getBoolean(Settings.SHARED_PREF_CHECK_BOX_KEY, true))
+            if (atoSave)
                 SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);
         } catch (ex: Exception) {
             FirebaseCrash.report(Exception("  private fun saveToPraf Error code 8 Error : " + ex.message))
@@ -671,5 +676,179 @@ loadIntiAdd()
             val imm = activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
         }
+
     }
+
+    private fun checkForConsent() {
+        val consentInformation = ConsentInformation.getInstance(activity)
+        val publisherIds = arrayOf("pub-5168564707064012")
+        consentInformation.requestConsentInfoUpdate(publisherIds, object : ConsentInfoUpdateListener {
+            override fun onConsentInfoUpdated(consentStatus: ConsentStatus) {
+                // User's consent status successfully updated.
+                when (consentStatus) {
+                    ConsentStatus.PERSONALIZED -> {
+                        Log.d(TAG, "Showing Personalized ads")
+                        showPersonalizedAds()
+                    }
+                    ConsentStatus.NON_PERSONALIZED -> {
+                        Log.d(TAG, "Showing Non-Personalized ads")
+                        showNonPersonalizedAds()
+                    }
+                    ConsentStatus.UNKNOWN -> {
+                        Log.d(TAG, "Requesting Consent")
+                        if (ConsentInformation.getInstance(activity?.baseContext)
+                                        .isRequestLocationInEeaOrUnknown) {
+                            requestConsent()
+                        } else {
+                            showPersonalizedAds()
+                        }
+                    }
+                    else -> {
+                    }
+                }
+            }
+
+            override fun onFailedToUpdateConsentInfo(errorDescription: String) {
+                // User's consent status failed to update.
+            }
+        })
+    }
+
+    private var form: ConsentForm?=null
+
+    private fun requestConsent() {
+        var privacyUrl: URL? = null
+        try {
+            // TODO: Replace with your app's privacy policy URL.
+            /*
+            watch this video how to create privacy policy in mint
+            https://www.youtube.com/watch?v=lSWSxyzwV-g&t=140s
+            */
+            privacyUrl = URL("")
+        } catch (e: MalformedURLException) {
+            e.printStackTrace()
+            // Handle error.
+        }
+
+        form = ConsentForm.Builder(activity, privacyUrl)
+                .withListener(object : ConsentFormListener() {
+                    override fun onConsentFormLoaded() {
+                        // Consent form loaded successfully.
+                        Log.d(TAG, "Requesting Consent: onConsentFormLoaded")
+                        showForm()
+                    }
+
+                    override fun onConsentFormOpened() {
+                        // Consent form was displayed.
+                        Log.d(TAG, "Requesting Consent: onConsentFormOpened")
+                    }
+
+                    override fun onConsentFormClosed(
+                            consentStatus: ConsentStatus?, userPrefersAdFree: Boolean?) {
+                        Log.d(TAG, "Requesting Consent: onConsentFormClosed")
+                        if (userPrefersAdFree!!) {
+                            // Buy or Subscribe
+                            Log.d(TAG, "Requesting Consent: User prefers AdFree")
+                        } else {
+                            Log.d(TAG, "Requesting Consent: Requesting consent again")
+                            when (consentStatus) {
+                                ConsentStatus.PERSONALIZED -> showPersonalizedAds()
+                                ConsentStatus.NON_PERSONALIZED -> showNonPersonalizedAds()
+                                ConsentStatus.UNKNOWN -> showNonPersonalizedAds()
+                            }
+
+                        }
+                        // Consent form was closed.
+                    }
+
+                    override fun onConsentFormError(errorDescription: String?) {
+                        Log.d(TAG, "Requesting Consent: onConsentFormError. Error - " + errorDescription!!)
+                        // Consent form error.
+                    }
+                })
+                .withPersonalizedAdsOption()
+                .withNonPersonalizedAdsOption()
+                .withAdFreeOption()
+                .build()
+        form?.load()
+    }
+
+    private fun showPersonalizedAds() {
+        ConsentInformation.getInstance(activity?.baseContext).consentStatus = ConsentStatus.PERSONALIZED
+        MobileAds.initialize(activity?.baseContext, "ca-app-pub-5168564707064012~5058501866");
+
+        mInterstitialAd = InterstitialAd(activity?.baseContext)
+        mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
+        val mAdView:AdView = rootView.findViewById(R.id.adView);
+        val adRequest = AdRequest.Builder()
+                .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
+                .build()
+        mAdView.loadAd(adRequest)
+        mInterstitialAd?.loadAd(adRequest)
+        mInterstitialAd?.adListener = object : AdListener() {
+            override fun onAdClosed() {
+                // Load the next interstitial.
+                mInterstitialAd?.loadAd(adRequest)
+            }
+        }
+
+
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity?.baseContext)
+        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535",adRequest)
+
+
+    }
+
+    private  var mInterstitialAd: InterstitialAd?=null
+    private var mRewardedVideoAd:RewardedVideoAd?=null
+
+    private fun showNonPersonalizedAds() {
+        ConsentInformation.getInstance(activity?.baseContext).consentStatus = ConsentStatus.NON_PERSONALIZED
+
+        MobileAds.initialize(activity?.baseContext, "ca-app-pub-5168564707064012~5058501866");
+         val mAdView:AdView = rootView.findViewById(R.id.adView);
+        val adRequest = AdRequest.Builder()
+                .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
+                .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
+                .build()
+        mAdView.loadAd(adRequest)
+
+        mInterstitialAd = InterstitialAd(activity?.baseContext)
+        mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
+
+        mInterstitialAd?.loadAd(adRequest)
+        mInterstitialAd?.adListener = object : AdListener() {
+            override fun onAdClosed() {
+                // Load the next interstitial.
+                mInterstitialAd?.loadAd(adRequest)
+            }
+        }
+
+
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity?.baseContext)
+        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
+    }
+
+    fun getNonPersonalizedAdsBundle(): Bundle {
+        val extras = Bundle()
+        extras.putString("npa", "1")
+
+        return extras
+    }
+
+
+
+    private fun showForm() {
+        if (form == null) {
+            Log.d(TAG, "Consent form is null")
+        }
+        if (form != null) {
+            Log.d(TAG, "Showing consent form")
+            form?.show()
+        } else {
+            Log.d(TAG, "Not Showing consent form")
+        }
+    }
+
+
 }

@@ -10,33 +10,14 @@
     tools:context="com.ameerhamza6733.directmessagesaveandrepost.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
-    <com.kekstudio.dachshundtablayout.DachshundTabLayout
-        android:id="@+id/tab_layout"
-
+    <FrameLayout
+        android:id="@+id/container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
-        custom:ddIndicatorColor="@android:color/white" />
+        android:layout_height="match_parent"
 
-    <android.support.v4.view.ViewPager
-        android:id="@+id/view_pager"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_below="@+id/tab_layout"
-        custom:layout_behavior="@string/appbar_scrolling_view_behavior" />
-    <com.google.android.gms.ads.AdView
 
-        xmlns:ads="http://schemas.android.com/apk/res-auto"
-        android:layout_marginTop="18dp"
-        android:id="@+id/adView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        ads:adSize="BANNER"
-        ads:adUnitId="@string/banner_ad_real_id">
-    </com.google.android.gms.ads.AdView>
+       />
+
 
 </RelativeLayout>
 
