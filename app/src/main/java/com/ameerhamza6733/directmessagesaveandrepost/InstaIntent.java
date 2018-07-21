@@ -7,7 +7,7 @@ import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.firebase.crash.FirebaseCrash;
+
 
 import java.io.File;
 
@@ -42,7 +42,6 @@ public class InstaIntent {
 
 
         } catch (Exception e) {
-            FirebaseCrash.report(new Exception("public void createVideoInstagramIntent Error code 2 Error : "+e.getMessage()));
             Toast.makeText(context, "Some thing wrong error : Error code 2 " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 

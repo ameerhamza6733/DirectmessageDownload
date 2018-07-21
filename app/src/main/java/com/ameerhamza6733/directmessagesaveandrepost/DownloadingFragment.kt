@@ -28,6 +28,7 @@ import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.artjimlop.altex.AltexImageDownloader
+import com.crashlytics.android.Crashlytics
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.daimajia.numberprogressbar.OnProgressBarListener
 import com.github.clans.fab.FloatingActionButton
@@ -38,7 +39,6 @@ import com.google.ads.consent.*
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.reward.RewardedVideoAd
-import com.google.firebase.crash.FirebaseCrash
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
@@ -78,7 +78,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 mNumberBar.progress = 0
             }
         } catch (Ex: Exception) {
-            FirebaseCrash.report(Exception("onRebuildError " + Ex.message))
+
         }
     }
 
@@ -93,17 +93,17 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 if (this@DownloadingFragment.activity != null) {
                     Toast.makeText(activity, "Downloading start", Toast.LENGTH_SHORT).show()
                     this@DownloadingFragment.activity!!.runOnUiThread({ mNumberBar.progress = 0 })
-                    FirebaseCrash.log("OnDownloadStarted")
+                    Crashlytics.log("OnDownloadStarted")
                 }
             }
         } catch (Ex: Exception) {
-            FirebaseCrash.report(Exception("OnDownloadStarted " + Ex.message))
+
         }
     }
 
     override fun OnDownloadPaused(taskId: Long) {
         Log.d(TAG, "OnDownloadPaused")
-        FirebaseCrash.log("OnDownloadPaused")
+        Crashlytics.log("OnDownloadPaused")
     }
 
     override fun onDownloadProcess(taskId: Long, percent: Double, downloadedLength: Long) {
@@ -113,7 +113,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                     this@DownloadingFragment.activity!!.runOnUiThread({ mNumberBar.incrementProgressBy(1) })
             }
         } catch (Ex: Exception) {
-            FirebaseCrash.report(Exception("onDownloadProcess " + Ex.message))
+
         }
         Log.d(TAG, "onDownloadProcess" + percent)
     }
@@ -142,7 +142,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             mPost.pathToStorage = repor.saveAddress
             Log.d(TAG, "content: " + mPost.content);
             saveToPraf(mPost)
-            FirebaseCrash.log("OnDownloadCompleted")
+            Crashlytics.log("OnDownloadCompleted")
         }
         Log.d(TAG, "OnDownloadCompleted") //To change body of created functions use File | Settings | File Templates.
     }
@@ -158,7 +158,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                     }
 
                 } catch (Ex: Exception) {
-                    FirebaseCrash.report(Exception("connectionLost " + Ex.message))
+
                 }
             }).show()
         }
@@ -180,7 +180,8 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
 
         } catch (ex: Exception) {
-            FirebaseCrash.report(Exception(" private fun shareIntent Error code 3 Error : " + ex.message));
+            Crashlytics.logException(ex);
+           // FirebaseCrash.report(Exception(" private fun shareIntent Error code 3 Error : " + ex.message));
             Toast.makeText(activity, "some thing working while sharing Error: code 3  " + ex.message, Toast.LENGTH_LONG).show()
         }
 
@@ -198,7 +199,8 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
             InstaIntent().createVideoInstagramIntent("image/*", mPost.pathToStorage, activity, repost);
         } catch (e: Exception) {
-            FirebaseCrash.report(Exception("private fun shareImageIntentToInstagram Error code 4 Error : " + e.message))
+            Crashlytics.logException(e);
+          //  FirebaseCrash.report(Exception("private fun shareImageIntentToInstagram Error code 4 Error : " + e.message))
             Toast.makeText(activity, "Some thing wrong Error code 4 Error message : " + e.message, Toast.LENGTH_LONG).show()
         }
 
@@ -432,6 +434,19 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }
     }
 
+    private var mContext: Context?=null
+
+    override fun onAttach(context: Context?) {
+        super.onAttach(context)
+        mContext = context
+        Crashlytics.log("onAttach");
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        mContext=null
+        Crashlytics.log("onDetach");
+    }
     private fun askPermistion() {
         PermissionWrapper.Builder(activity)
                 .addPermissions(arrayOf<String>(Manifest.permission.WRITE_EXTERNAL_STORAGE))
@@ -474,8 +489,8 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
             }
         } catch (ex: Exception) {
-
-            FirebaseCrash.report(Exception("  private  fun checkIFPosAllreadyDownloaded Error code 5 Error : " + ex.message))
+            Crashlytics.logException(ex);
+         //   FirebaseCrash.report(Exception("  private  fun checkIFPosAllreadyDownloaded Error code 5 Error : " + ex.message))
             Toast.makeText(activity, "Some thing wrong Error code 5 Error message : " + ex.message, Toast.LENGTH_LONG).show()
 
             return false
@@ -499,10 +514,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             mProgressBar.visibility = View.VISIBLE
             mCardView.visibility = View.INVISIBLE
             hideKeybord()
-            try {
-                FirebaseCrash.log("onPreExecute" + ConnURL.replace("https://www", ""));
-            } catch (E: Exception) {
-            }
+
 
 
         }
@@ -539,11 +551,11 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
             } catch (ex: Exception) {
                 ex.printStackTrace()
-                activity!!.runOnUiThread({
+
+                activity?.runOnUiThread({
                     Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
                     isSomeThingWrong = true
-                    FirebaseCrash.report(Exception("Some wrong in doInBackGround() Error code 111" + ex.message))
-
+                    Crashlytics.logException(ex);
                 })
 
             }
@@ -552,7 +564,6 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
-            FirebaseCrash.log("onPostExecute isSomeThingWrong" + isSomeThingWrong)
 
             if (!isSomeThingWrong) {
 
@@ -582,7 +593,6 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 }
                 Picasso.with(activity).load(mPost.imageURL).into(mImage)
             } catch (Ex: Exception) {
-                FirebaseCrash.report(Exception("  private fun UpdateUI() Error code 6 Error : " + Ex.message))
                 Toast.makeText(activity, "Some thing wrong Error code 6 Error message : " + Ex.message, Toast.LENGTH_LONG).show()
                 Ex.printStackTrace()
             }
@@ -607,7 +617,6 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 } else
                     downloadImage()
             } catch (ex: Exception) {
-                FirebaseCrash.report(Exception(" private fun intiDownloader()  Error code 7 Error : " + ex.message))
                 Toast.makeText(activity, "Some thing wrong Error code 7 Error message : " + ex.message, Toast.LENGTH_LONG).show()
 
             }
@@ -615,11 +624,10 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         private fun downloadImage() {
             mNumberBar.progress = 0
-            FirebaseCrash.log("downloadImage()")
             val download = AltexImageDownloader(object : AltexImageDownloader.OnImageLoaderListener {
                 override fun onError(error: AltexImageDownloader.ImageError) {
                     Toast.makeText(activity, "Error " + error.toString(), Toast.LENGTH_SHORT).show()
-                    FirebaseCrash.report(Exception("onImagesError " + error.toString()))
+
                 }
 
                 override fun onProgressChange(percent: Int) {
@@ -628,7 +636,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 }
 
                 override fun onComplete(result: Bitmap) {
-                    FirebaseCrash.log("onCompleteImageDownload")
+
                     mFabRepostButton.visibility = View.VISIBLE
                     mFabShareButton.visibility = View.VISIBLE
                     mNumberBar.progress = 100
@@ -658,7 +666,6 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             if (atoSave)
                 SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);
         } catch (ex: Exception) {
-            FirebaseCrash.report(Exception("  private fun saveToPraf Error code 8 Error : " + ex.message))
             Toast.makeText(activity, "Some thing wrong Error code 8 Error message : " + ex.message, Toast.LENGTH_LONG).show()
 
         }
@@ -674,7 +681,9 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun checkForConsent() {
-        val consentInformation = ConsentInformation.getInstance(activity)
+        if (mContext==null)
+            return
+        val consentInformation = ConsentInformation.getInstance(mContext)
         val publisherIds = arrayOf("pub-5168564707064012")
         consentInformation.requestConsentInfoUpdate(publisherIds, object : ConsentInfoUpdateListener {
             override fun onConsentInfoUpdated(consentStatus: ConsentStatus) {
@@ -723,8 +732,9 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             e.printStackTrace()
             // Handle error.
         }
-
-        form = ConsentForm.Builder(activity, privacyUrl)
+if (mContext==null)
+    return
+        form = ConsentForm.Builder(mContext?.applicationContext, privacyUrl)
                 .withListener(object : ConsentFormListener() {
                     override fun onConsentFormLoaded() {
                         // Consent form loaded successfully.
@@ -768,10 +778,12 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun showPersonalizedAds() {
-        ConsentInformation.getInstance(activity?.baseContext).consentStatus = ConsentStatus.PERSONALIZED
-        MobileAds.initialize(activity?.baseContext, "ca-app-pub-5168564707064012~5058501866");
+        if(mContext==null)
+            return
+        ConsentInformation.getInstance(mContext?.applicationContext).consentStatus = ConsentStatus.PERSONALIZED
+        MobileAds.initialize(mContext?.applicationContext, "ca-app-pub-5168564707064012~5058501866");
 
-        mInterstitialAd = InterstitialAd(activity?.baseContext)
+        mInterstitialAd = InterstitialAd(mContext?.applicationContext)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
         val mAdView: AdView = rootView.findViewById(R.id.adView);
         val adRequest = AdRequest.Builder()
@@ -787,7 +799,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }
 
 
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity?.baseContext)
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(mContext?.applicationContext)
         mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
 
 
@@ -797,9 +809,11 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private var mRewardedVideoAd: RewardedVideoAd? = null
 
     private fun showNonPersonalizedAds() {
-        ConsentInformation.getInstance(activity?.baseContext).consentStatus = ConsentStatus.NON_PERSONALIZED
+        if (mContext==null)
+            return
+        ConsentInformation.getInstance(mContext?.applicationContext).consentStatus = ConsentStatus.NON_PERSONALIZED
 
-        MobileAds.initialize(activity?.baseContext, "ca-app-pub-5168564707064012~5058501866");
+        MobileAds.initialize(mContext?.applicationContext, "ca-app-pub-5168564707064012~5058501866");
         val mAdView: AdView = rootView.findViewById(R.id.adView);
         val adRequest = AdRequest.Builder()
                 .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
@@ -807,7 +821,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
                 .build()
         mAdView.loadAd(adRequest)
 
-        mInterstitialAd = InterstitialAd(activity?.baseContext)
+        mInterstitialAd = InterstitialAd(mContext?.applicationContext)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
 
         mInterstitialAd?.loadAd(adRequest)
@@ -819,7 +833,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }
 
 
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity?.baseContext)
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(mContext?.applicationContext)
         mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
     }
 

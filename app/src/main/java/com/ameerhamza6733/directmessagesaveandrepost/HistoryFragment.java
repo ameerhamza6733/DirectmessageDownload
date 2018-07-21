@@ -14,7 +14,7 @@ import android.widget.Toast;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.InterstitialAd;
-import com.google.firebase.crash.FirebaseCrash;
+
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 
 import java.io.File;
@@ -106,7 +106,6 @@ public class HistoryFragment extends Fragment {
                 initDataset();
             } catch (Exception e) {
                 e.printStackTrace();
-                FirebaseCrash.report(new Exception(" public void setUserVisibleHint Error code 10 Error : " + e.getMessage()));
                 Toast.makeText(getActivity(), "unable to load history if you just update your app then make sure uninstall this app first then reinstall Error code 10", Toast.LENGTH_LONG).show();
             }
             loadIntiAdd();
