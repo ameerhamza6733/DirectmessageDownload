@@ -214,16 +214,5 @@
     </RelativeLayout>
 
 </ScrollView>
-       <com.google.android.gms.ads.AdView
 
-        xmlns:ads="http://schemas.android.com/apk/res-auto"
-        android:layout_marginTop="18dp"
-        android:id="@+id/adView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        ads:adSize="BANNER"
-        ads:adUnitId="@string/banner_ad_real_id">
-    </com.google.android.gms.ads.AdView>
 </RelativeLayout>

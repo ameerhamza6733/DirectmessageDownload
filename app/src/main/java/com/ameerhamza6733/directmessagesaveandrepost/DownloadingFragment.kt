@@ -3,7 +3,6 @@ package com.ameerhamza6733.directmessagesaveandrepost
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -35,10 +34,6 @@ import com.github.clans.fab.FloatingActionButton
 import com.golshadi.majid.core.DownloadManagerPro
 import com.golshadi.majid.report.ReportStructure
 import com.golshadi.majid.report.listener.DownloadManagerListener
-import com.google.ads.consent.*
-import com.google.ads.mediation.admob.AdMobAdapter
-import com.google.android.gms.ads.*
-import com.google.android.gms.ads.reward.RewardedVideoAd
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager
 import com.squareup.picasso.Picasso
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
@@ -46,8 +41,6 @@ import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
-import java.net.MalformedURLException
-import java.net.URL
 
 /**
  * Created by AmeerHamza on 10/6/2017.
@@ -181,7 +174,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         } catch (ex: Exception) {
             Crashlytics.logException(ex);
-           // FirebaseCrash.report(Exception(" private fun shareIntent Error code 3 Error : " + ex.message));
+            // FirebaseCrash.report(Exception(" private fun shareIntent Error code 3 Error : " + ex.message));
             Toast.makeText(activity, "some thing working while sharing Error: code 3  " + ex.message, Toast.LENGTH_LONG).show()
         }
 
@@ -200,7 +193,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             InstaIntent().createVideoInstagramIntent("image/*", mPost.pathToStorage, activity, repost);
         } catch (e: Exception) {
             Crashlytics.logException(e);
-          //  FirebaseCrash.report(Exception("private fun shareImageIntentToInstagram Error code 4 Error : " + e.message))
+            //  FirebaseCrash.report(Exception("private fun shareImageIntentToInstagram Error code 4 Error : " + e.message))
             Toast.makeText(activity, "Some thing wrong Error code 4 Error message : " + e.message, Toast.LENGTH_LONG).show()
         }
 
@@ -243,13 +236,13 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         SharedPreferencesManager.init(activity, true)
-      var rateMe =  SharedPreferencesManager.getInstance().getValue("RateMe", Boolean::class.java,true)
+        var rateMe = SharedPreferencesManager.getInstance().getValue("RateMe", Boolean::class.java, true)
         var firstTIme = SharedPreferencesManager.getInstance().getValue("isFirstTime", Boolean::class.java, true)
         if (firstTIme) {
             val intent = Intent(activity, MyInstructionActivity::class.java)
             activity?.startActivity(intent)
         }
-        if (!firstTIme && rateMe){
+        if (!firstTIme && rateMe) {
             showRateMe()
         }
         atoSave = SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING, Boolean::class.java, true)
@@ -257,15 +250,16 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
         setUpListerners()
         copyDataFromClipBrod()
-        checkForConsent();
+        var mainActivity = activity as MainActivity
+        if (mainActivity != null)
+            mainActivity.checkForConsentForAdmob()
+
     }
 
     private fun copyHashTagToClipBord() {
-        if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
-            mRewardedVideoAd?.show()
-        } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
-            mInterstitialAd?.show()
-        }
+        var mainActivity = activity as MainActivity
+        if (mainActivity != null)
+            mainActivity.showAds()
         if (!mHashTagTextView.text.isEmpty()) {
             val clipbordHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
@@ -276,11 +270,9 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun CopyBoth() {
-        if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
-            mRewardedVideoAd?.show()
-        } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
-            mInterstitialAd?.show()
-        }
+        var mainActivity = activity as MainActivity
+        if (mainActivity != null)
+            mainActivity.showAds()
         var hashTagAndCaption = "";
         if (!mHashTagTextView.text.isEmpty()) {
             hashTagAndCaption = mHashTagTextView.text.toString();
@@ -293,7 +285,9 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun copyCaptionToClipBord() {
-
+        var mainActivity = activity as MainActivity
+        if (mainActivity != null)
+            mainActivity.showAds()
         if (!mCaptionTextView.text.isEmpty()) {
 
             val clipbordHelper = ClipBrodHelper()
@@ -434,7 +428,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         }
     }
 
-    private var mContext: Context?=null
+    private var mContext: Context? = null
 
     override fun onAttach(context: Context?) {
         super.onAttach(context)
@@ -444,9 +438,10 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     override fun onDetach() {
         super.onDetach()
-        mContext=null
+        mContext = null
         Crashlytics.log("onDetach");
     }
+
     private fun askPermistion() {
         PermissionWrapper.Builder(activity)
                 .addPermissions(arrayOf<String>(Manifest.permission.WRITE_EXTERNAL_STORAGE))
@@ -490,7 +485,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             }
         } catch (ex: Exception) {
             Crashlytics.logException(ex);
-         //   FirebaseCrash.report(Exception("  private  fun checkIFPosAllreadyDownloaded Error code 5 Error : " + ex.message))
+            //   FirebaseCrash.report(Exception("  private  fun checkIFPosAllreadyDownloaded Error code 5 Error : " + ex.message))
             Toast.makeText(activity, "Some thing wrong Error code 5 Error message : " + ex.message, Toast.LENGTH_LONG).show()
 
             return false
@@ -514,7 +509,6 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
             mProgressBar.visibility = View.VISIBLE
             mCardView.visibility = View.INVISIBLE
             hideKeybord()
-
 
 
         }
@@ -680,182 +674,6 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     }
 
-    private fun checkForConsent() {
-        if (mContext==null)
-            return
-        val consentInformation = ConsentInformation.getInstance(mContext)
-        val publisherIds = arrayOf("pub-5168564707064012")
-        consentInformation.requestConsentInfoUpdate(publisherIds, object : ConsentInfoUpdateListener {
-            override fun onConsentInfoUpdated(consentStatus: ConsentStatus) {
-                // User's consent status successfully updated.
-                when (consentStatus) {
-                    ConsentStatus.PERSONALIZED -> {
-                        Log.d(TAG, "Showing Personalized ads")
-                        showPersonalizedAds()
-                    }
-                    ConsentStatus.NON_PERSONALIZED -> {
-                        Log.d(TAG, "Showing Non-Personalized ads")
-                        showNonPersonalizedAds()
-                    }
-                    ConsentStatus.UNKNOWN -> {
-                        Log.d(TAG, "Requesting Consent")
-                        if (ConsentInformation.getInstance(activity?.baseContext)
-                                        .isRequestLocationInEeaOrUnknown) {
-                            requestConsent()
-                        } else {
-                            showPersonalizedAds()
-                        }
-                    }
-                    else -> {
-                    }
-                }
-            }
-
-            override fun onFailedToUpdateConsentInfo(errorDescription: String) {
-                // User's consent status failed to update.
-            }
-        })
-    }
-
-    private var form: ConsentForm? = null
-
-    private fun requestConsent() {
-        var privacyUrl: URL? = null
-        try {
-            // TODO: Replace with your app's privacy policy URL.
-            /*
-            watch this video how to create privacy policy in mint
-            https://www.youtube.com/watch?v=lSWSxyzwV-g&t=140s
-            */
-            privacyUrl = URL("http://alphapk6733.blogspot.com/2018/07/privacy-policy-for-copy-caption-and-tag.html")
-        } catch (e: MalformedURLException) {
-            e.printStackTrace()
-            // Handle error.
-        }
-if (mContext==null)
-    return
-        form = ConsentForm.Builder(mContext?.applicationContext, privacyUrl)
-                .withListener(object : ConsentFormListener() {
-                    override fun onConsentFormLoaded() {
-                        // Consent form loaded successfully.
-                        Log.d(TAG, "Requesting Consent: onConsentFormLoaded")
-                        showForm()
-                    }
-
-                    override fun onConsentFormOpened() {
-                        // Consent form was displayed.
-                        Log.d(TAG, "Requesting Consent: onConsentFormOpened")
-                    }
-
-                    override fun onConsentFormClosed(
-                            consentStatus: ConsentStatus?, userPrefersAdFree: Boolean?) {
-                        Log.d(TAG, "Requesting Consent: onConsentFormClosed")
-                        if (userPrefersAdFree!!) {
-                            // Buy or Subscribe
-                            Log.d(TAG, "Requesting Consent: User prefers AdFree")
-                        } else {
-                            Log.d(TAG, "Requesting Consent: Requesting consent again")
-                            when (consentStatus) {
-                                ConsentStatus.PERSONALIZED -> showPersonalizedAds()
-                                ConsentStatus.NON_PERSONALIZED -> showNonPersonalizedAds()
-                                ConsentStatus.UNKNOWN -> showNonPersonalizedAds()
-                            }
-
-                        }
-                        // Consent form was closed.
-                    }
-
-                    override fun onConsentFormError(errorDescription: String?) {
-                        Log.d(TAG, "Requesting Consent: onConsentFormError. Error - " + errorDescription!!)
-                        // Consent form error.
-                    }
-                })
-                .withPersonalizedAdsOption()
-                .withNonPersonalizedAdsOption()
-                .withAdFreeOption()
-                .build()
-        form?.load()
-    }
-
-    private fun showPersonalizedAds() {
-        if(mContext==null)
-            return
-        ConsentInformation.getInstance(mContext?.applicationContext).consentStatus = ConsentStatus.PERSONALIZED
-        MobileAds.initialize(mContext?.applicationContext, "ca-app-pub-5168564707064012~5058501866");
-
-        mInterstitialAd = InterstitialAd(mContext?.applicationContext)
-        mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-        val mAdView: AdView = rootView.findViewById(R.id.adView);
-        val adRequest = AdRequest.Builder()
-                .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
-                .build()
-        mAdView.loadAd(adRequest)
-        mInterstitialAd?.loadAd(adRequest)
-        mInterstitialAd?.adListener = object : AdListener() {
-            override fun onAdClosed() {
-                // Load the next interstitial.
-                mInterstitialAd?.loadAd(adRequest)
-            }
-        }
-
-
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(mContext?.applicationContext)
-        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
-
-
-    }
-
-    private var mInterstitialAd: InterstitialAd? = null
-    private var mRewardedVideoAd: RewardedVideoAd? = null
-
-    private fun showNonPersonalizedAds() {
-        if (mContext==null)
-            return
-        ConsentInformation.getInstance(mContext?.applicationContext).consentStatus = ConsentStatus.NON_PERSONALIZED
-
-        MobileAds.initialize(mContext?.applicationContext, "ca-app-pub-5168564707064012~5058501866");
-        val mAdView: AdView = rootView.findViewById(R.id.adView);
-        val adRequest = AdRequest.Builder()
-                .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
-                .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
-                .build()
-        mAdView.loadAd(adRequest)
-
-        mInterstitialAd = InterstitialAd(mContext?.applicationContext)
-        mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-
-        mInterstitialAd?.loadAd(adRequest)
-        mInterstitialAd?.adListener = object : AdListener() {
-            override fun onAdClosed() {
-                // Load the next interstitial.
-                mInterstitialAd?.loadAd(adRequest)
-            }
-        }
-
-
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(mContext?.applicationContext)
-        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
-    }
-
-    fun getNonPersonalizedAdsBundle(): Bundle {
-        val extras = Bundle()
-        extras.putString("npa", "1")
-
-        return extras
-    }
-
-
-    private fun showForm() {
-        if (form == null) {
-            Log.d(TAG, "Consent form is null")
-        }
-        if (form != null) {
-            Log.d(TAG, "Showing consent form")
-            form?.show()
-        } else {
-            Log.d(TAG, "Not Showing consent form")
-        }
-    }
 
     private fun showRateMe() {
         val builder: AlertDialog.Builder
@@ -867,7 +685,7 @@ if (mContext==null)
                     // continue with delete
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + activity?.packageName)))
                 }
-                .setNegativeButton("never"){dialog, which ->
+                .setNegativeButton("never") { dialog, which ->
                     SharedPreferencesManager.getInstance().putValue("RateMe", false)
 
                 }

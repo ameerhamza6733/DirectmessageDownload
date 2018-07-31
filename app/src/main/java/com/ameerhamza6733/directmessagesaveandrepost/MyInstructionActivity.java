@@ -53,11 +53,9 @@ public class MyInstructionActivity extends TutorialActivity implements StepFragm
     }
 
     private void writeToSharedPraf() {
-        try {
+
             SharedPreferencesManager.getInstance().putValue(IS_FIRST_TIME, false);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
     }
 
     @Override
@@ -71,7 +69,9 @@ public class MyInstructionActivity extends TutorialActivity implements StepFragm
                 }
                 break;
             case PAST_LINK_BUTTON_TITLE:
-                startActivity(new Intent(this,MainActivity.class));
+            Intent intent=    new Intent(this,MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
               finish();
                 break;
 
