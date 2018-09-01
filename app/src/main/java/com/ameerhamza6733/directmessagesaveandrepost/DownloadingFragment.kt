@@ -21,7 +21,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import com.ameerhamza6733.directmessagesaveandrepost.Settings.ATO_START_DOWNLOADING
+import com.ameerhamza6733.directmessagesaveandrepost.Settings.ATO_START_DOWNLOADING_
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -214,6 +214,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
     private lateinit var rootView: View;
+    private lateinit var rootCardView:CardView
 
 
     private lateinit var dm: DownloadManagerPro
@@ -223,7 +224,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     lateinit var postKeyFromShardPraf: String
 
     private var manualyDownload = false
-    private var atoSave = true;
+    private var atoSaveStartDownloading = "1";
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
@@ -245,14 +246,11 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         if (!firstTIme && rateMe) {
             showRateMe()
         }
-        atoSave = SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING, Boolean::class.java, true)
+        atoSaveStartDownloading = SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING_, String::class.java, "1")
 
 
         setUpListerners()
         copyDataFromClipBrod()
-        var mainActivity = activity as MainActivity
-        if (mainActivity != null)
-            mainActivity.checkForConsentForAdmob()
 
     }
 
@@ -353,6 +351,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun copyDataFromClipBrod() {
+        rootCardView.visibility=View.INVISIBLE
         if (!ClipBrodHelper(activity).clipBrodText.isNullOrEmpty()) {
             try {
                 if (mPost != null) {
@@ -390,6 +389,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
         mFabShareButton = view.findViewById<FloatingActionButton>(R.id.floatingActionButtonShare) as FloatingActionButton
         mCardView = view.findViewById<CardView>(R.id.cardView) as CardView
         mProgressBar = view.findViewById<ProgressBar>(R.id.progressBar) as ProgressBar
+        rootCardView=view.findViewById(R.id.cardView)
 
     }
 
@@ -417,7 +417,8 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
     }
 
     private fun intiDownloader() {
-        if (atoSave || manualyDownload) {
+        if (atoSaveStartDownloading =="1"|| manualyDownload) {
+            rootCardView.visibility=View.VISIBLE
             if (!mEditTextInputURl.text.toString().isEmpty()) {
                 grabData(mEditTextInputURl.text.toString()).execute()
                 downloadCaption(mEditTextInputURl.text.toString())
@@ -657,7 +658,7 @@ class DownloadingFragment : Fragment(), DownloadManagerListener, OnProgressBarLi
 
     private fun saveToPraf(mPost: Post) {
         try {
-            if (atoSave)
+
                 SharedPreferencesManager.getInstance().putValue(mPost.postID, mPost);
         } catch (ex: Exception) {
             Toast.makeText(activity, "Some thing wrong Error code 8 Error message : " + ex.message, Toast.LENGTH_LONG).show()

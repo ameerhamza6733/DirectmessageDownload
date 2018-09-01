@@ -14,6 +14,8 @@ import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.ProgressBar
 import com.google.ads.consent.*
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
@@ -25,16 +27,17 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
-    private var fragmentManager:FragmentManager?=null
-    private var TAG ="MainActivityTAG";
-    private var mContext : Context?=null
+    private var fragmentManager: FragmentManager? = null
+    private var TAG = "MainActivityTAG";
+    private var mContext: Context? = null
+    private lateinit var progressBar: ProgressBar
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        mContext=this
+        mContext = this
 
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val toggle = ActionBarDrawerToggle(
@@ -44,12 +47,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
-        fragmentManager = supportFragmentManager
-        fragmentManager?.beginTransaction()?.replace(R.id.container, DownloadingFragment())?.commit()
-
+        progressBar=findViewById(R.id.progressBar2)
+        checkForConsentForAdmob()
 
     }
 
+    private fun loadFragment() {
+        fragmentManager = supportFragmentManager
+        fragmentManager?.beginTransaction()?.replace(R.id.container, DownloadingFragment())?.commitAllowingStateLoss()
+
+    }
 
     override fun onBackPressed() {
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
@@ -90,7 +97,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_feedback -> feedBack()
             R.id.nav_rate -> openMarket(this.packageName)
             R.id.nav_history -> {
-               fragmentManager?.beginTransaction()?.replace(R.id.container,HistoryFragment())?.commit()
+                fragmentManager?.beginTransaction()?.replace(R.id.container, HistoryFragment())?.commit()
             }
 
             R.id.nav_action_settings -> {
@@ -103,7 +110,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
 
-
     private fun feedBack() {
         EasyFeedback.Builder(this)
                 .withEmail("develpore2017@gmail.com")
@@ -111,12 +117,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 .build()
                 .start()
     }
-public fun checkForConsentForAdmob(){
-    checkForConsent()
-}
+
+    public fun checkForConsentForAdmob() {
+        checkForConsent()
+    }
+
     private var form: ConsentForm? = null
     private fun checkForConsent() {
-        if (mContext==null)
+        if (mContext == null)
             return
         val consentInformation = ConsentInformation.getInstance(mContext)
         val publisherIds = arrayOf("pub-5168564707064012")
@@ -151,6 +159,7 @@ public fun checkForConsentForAdmob(){
             }
         })
     }
+
     private fun requestConsent() {
         var privacyUrl: URL? = null
         try {
@@ -164,9 +173,9 @@ public fun checkForConsentForAdmob(){
             e.printStackTrace()
             // Handle error.
         }
-        if (mContext==null)
+        if (mContext == null)
             return
-        form = ConsentForm.Builder(mContext?.applicationContext, privacyUrl)
+        form = ConsentForm.Builder(this@MainActivity, privacyUrl)
                 .withListener(object : ConsentFormListener() {
                     override fun onConsentFormLoaded() {
                         // Consent form loaded successfully.
@@ -210,12 +219,12 @@ public fun checkForConsentForAdmob(){
     }
 
     private fun showPersonalizedAds() {
-        if(mContext==null)
+        if (mContext == null)
             return
-        ConsentInformation.getInstance(mContext?.applicationContext).consentStatus = ConsentStatus.PERSONALIZED
-        MobileAds.initialize(mContext?.applicationContext, "ca-app-pub-5168564707064012~5058501866");
+        ConsentInformation.getInstance(this@MainActivity).consentStatus = ConsentStatus.PERSONALIZED
+        MobileAds.initialize(this@MainActivity, "ca-app-pub-5168564707064012~5058501866");
 
-        mInterstitialAd = InterstitialAd(mContext?.applicationContext)
+        mInterstitialAd = InterstitialAd(this@MainActivity)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
         val mAdView: AdView = findViewById(R.id.adView);
         val adRequest = AdRequest.Builder()
@@ -228,10 +237,22 @@ public fun checkForConsentForAdmob(){
                 // Load the next interstitial.
                 mInterstitialAd?.loadAd(adRequest)
             }
+
+            override fun onAdFailedToLoad(p0: Int) {
+                super.onAdFailedToLoad(p0)
+                progressBar.visibility=View.INVISIBLE
+                loadFragment()
+            }
+
+            override fun onAdLoaded() {
+                super.onAdLoaded()
+                progressBar.visibility=View.INVISIBLE
+                loadFragment()
+            }
         }
 
 
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(mContext?.applicationContext)
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this@MainActivity)
         mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
 
 
@@ -241,11 +262,11 @@ public fun checkForConsentForAdmob(){
     private var mRewardedVideoAd: RewardedVideoAd? = null
 
     private fun showNonPersonalizedAds() {
-        if (mContext==null)
+        if (mContext == null)
             return
-        ConsentInformation.getInstance(mContext?.applicationContext).consentStatus = ConsentStatus.NON_PERSONALIZED
+        ConsentInformation.getInstance(this@MainActivity).consentStatus = ConsentStatus.NON_PERSONALIZED
 
-        MobileAds.initialize(mContext?.applicationContext, "ca-app-pub-5168564707064012~5058501866");
+        MobileAds.initialize(this@MainActivity, "ca-app-pub-5168564707064012~5058501866");
         val mAdView: AdView = findViewById(R.id.adView);
         val adRequest = AdRequest.Builder()
                 .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
@@ -253,7 +274,7 @@ public fun checkForConsentForAdmob(){
                 .build()
         mAdView.loadAd(adRequest)
 
-        mInterstitialAd = InterstitialAd(mContext?.applicationContext)
+        mInterstitialAd = InterstitialAd(this@MainActivity)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
 
         mInterstitialAd?.loadAd(adRequest)
@@ -262,10 +283,22 @@ public fun checkForConsentForAdmob(){
                 // Load the next interstitial.
                 mInterstitialAd?.loadAd(adRequest)
             }
+
+            override fun onAdFailedToLoad(p0: Int) {
+                super.onAdFailedToLoad(p0)
+                progressBar.visibility=View.INVISIBLE
+                loadFragment()
+            }
+
+            override fun onAdLoaded() {
+                super.onAdLoaded()
+                progressBar.visibility=View.INVISIBLE
+                loadFragment()
+            }
         }
 
 
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(mContext?.applicationContext)
+        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this@MainActivity)
         mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
     }
 
@@ -283,18 +316,22 @@ public fun checkForConsentForAdmob(){
         }
         if (form != null) {
             Log.d(TAG, "Showing consent form")
-            form?.show()
+            if (!isFinishing)
+                form?.show()
         } else {
             Log.d(TAG, "Not Showing consent form")
         }
     }
-    public fun showAds(){
+
+    public fun showAds() {
+        Log.d(TAG,"showing ads");
         if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
             mRewardedVideoAd?.show()
         } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
             mInterstitialAd?.show()
         }
     }
+
     private fun openMarket(PackageName: String) {
 
         try {

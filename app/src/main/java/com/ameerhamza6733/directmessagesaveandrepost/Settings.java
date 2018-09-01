@@ -14,11 +14,12 @@ import android.widget.Toast;
 
 import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 
+
 public class Settings extends AppCompatActivity {
     public static final String SHARED_PREF_CHECK_BOX_KEY = "com.ameerhamza6733.directmessagesaveandrepost.mSaveHistoryCheckBox";
     public static final String SHARED_PREFF_SETTINGS_NAME = "com.ameerhamza6733.directmessagesaveandrepost.mSaveHistoryCheckBox.Settings";
     public static final String DEFAULT_CAPTION_KEY = "default_caption";
-    public static final String ATO_START_DOWNLOADING = "ato_start_downloading";
+    public static final String ATO_START_DOWNLOADING_ = "ato_start_downloading_";
 
     private EditText mDefaultCaptionEditText;
     private CheckBox mSaveHistoryCheckBox;
@@ -26,7 +27,7 @@ public class Settings extends AppCompatActivity {
     private SharedPreferences.Editor editor;
     private Button mSaveCaptionButton;
     private CheckBox mAtoStartDownloadingCheckBox;
-    private int AtoStart = 1;
+    private String AtoStart = "1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +35,7 @@ public class Settings extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING, Boolean.class, true);
+       AtoStart= SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING_, String.class, "1");
         inlizedViews();
         setChackBoxStates();
         listerners();
@@ -51,10 +52,10 @@ public class Settings extends AppCompatActivity {
     }
 
     private void setChackBoxStates() {
-        if (sharedPreferences.getBoolean(SHARED_PREF_CHECK_BOX_KEY, true))
-            mSaveHistoryCheckBox.setChecked(sharedPreferences.getBoolean(SHARED_PREF_CHECK_BOX_KEY, true));
-        if (AtoStart == 1)
-            mAtoStartDownloadingCheckBox.setChecked(AtoStart == 1);
+        if (sharedPreferences.getString(SHARED_PREF_CHECK_BOX_KEY, "1").equals("1"))
+            mSaveHistoryCheckBox.setChecked(sharedPreferences.getString(SHARED_PREF_CHECK_BOX_KEY, "1") == "1");
+        if (AtoStart.equals("1"))
+            mAtoStartDownloadingCheckBox.setChecked(AtoStart .equals("1"));
         mDefaultCaptionEditText.setText(sharedPreferences.getString(DEFAULT_CAPTION_KEY, ""));
     }
 
@@ -62,13 +63,14 @@ public class Settings extends AppCompatActivity {
         mSaveHistoryCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                editor.putBoolean(SHARED_PREF_CHECK_BOX_KEY, b).apply();
+                editor.putString(SHARED_PREF_CHECK_BOX_KEY, b?"1":"0").apply();
             }
         });
         mAtoStartDownloadingCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                SharedPreferencesManager.getInstance().putValue(ATO_START_DOWNLOADING, b);
+
+                SharedPreferencesManager.getInstance().putValue(ATO_START_DOWNLOADING_, b?"1":"0");
             }
         });
 
