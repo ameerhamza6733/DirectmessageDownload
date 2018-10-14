@@ -12,7 +12,6 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 
 
 public class Settings extends AppCompatActivity {
@@ -27,7 +26,7 @@ public class Settings extends AppCompatActivity {
     private SharedPreferences.Editor editor;
     private Button mSaveCaptionButton;
     private CheckBox mAtoStartDownloadingCheckBox;
-    private String AtoStart = "1";
+    private Boolean AtoStart = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +34,7 @@ public class Settings extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-       AtoStart= SharedPreferencesManager.getInstance().getValue(ATO_START_DOWNLOADING_, String.class, "1");
+       AtoStart= My_Share_Pref.Companion.SaveAtoStart(this,true);
         inlizedViews();
         setChackBoxStates();
         listerners();
@@ -70,7 +69,7 @@ public class Settings extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
 
-                SharedPreferencesManager.getInstance().putValue(ATO_START_DOWNLOADING_, b?"1":"0");
+               My_Share_Pref.Companion.SaveAtoStart(Settings.this, b);
             }
         });
 

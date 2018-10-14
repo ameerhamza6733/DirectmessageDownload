@@ -15,8 +15,6 @@ import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.InterstitialAd;
 
-import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -79,7 +77,8 @@ public class HistoryFragment extends Fragment {
 
         // END_INCLUDE(initializeRecyclerView)
 
-
+        initDataset();
+        loadIntiAdd();
         return rootView;
     }
 
@@ -98,20 +97,7 @@ public class HistoryFragment extends Fragment {
 
     }
 
-    @Override
-    public void setUserVisibleHint(boolean isVisibleToUser) {
-        super.setUserVisibleHint(isVisibleToUser);
-        if (isVisibleToUser) {
-            try {
-                initDataset();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(getActivity(), "unable to load history if you just update your app then make sure uninstall this app first then reinstall Error code 10", Toast.LENGTH_LONG).show();
-            }
-            loadIntiAdd();
-        }
 
-    }
 
     /**
      * Set RecyclerView's LayoutManager to the one given.
@@ -156,41 +142,15 @@ public class HistoryFragment extends Fragment {
      * Generates Strings for RecyclerView's adapter. This data come
      * from a SharedPreferencesManager.
      */
-    private void initDataset() throws Exception {
-        mDataset = new ArrayList<>();
-        Map<String, ?> allEntries = SharedPreferencesManager.getInstance().getAllKeys();
-        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
-            if (entry == null || entry.getValue() == null) continue;
-            Log.e("SharedPreferenceManager", entry.getKey() + ": " + entry.getValue().toString());
-            try {
-                mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), Post.class));
-
-            } catch (ClassCastException c) {
-                c.printStackTrace();
-
-            }
-            //  mDataset.add(SharedPreferencesManager.getInstance().getValue(entry.getKey(), Post.class));
-
-        }
-        removeIFPostNotExsitInDevice();
-    }
-
-    private void removeIFPostNotExsitInDevice() throws Exception {
-        Iterator itr = mDataset.iterator();
-        while (itr.hasNext()) {
-            Post mPost = (Post) itr.next();
-            if (mPost.getMedium().equalsIgnoreCase("image") || (mPost.getMedium().equalsIgnoreCase("video")))
-                if (new File(mPost.getPathToStorage()).exists()) {
-
-                } else {
-                    itr.remove();
-                    mDataset.remove(mPost);
-                    SharedPreferencesManager.getInstance().remove(mPost.getPostID());
-                }
-        }
-        mAdapter = new HistoryAdapter(mDataset);
+    private void initDataset()  {
+      ArrayList<Post> list=  My_Share_Pref.Companion.getAllPost(getActivity());
+        mAdapter = new HistoryAdapter(list);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mRecyclerView.setAdapter(mAdapter);
+
     }
+
+
 
     private enum LayoutManagerType {
         GRID_LAYOUT_MANAGER,

@@ -12,7 +12,7 @@ import android.widget.Button;
 import com.hololo.tutorial.library.Step;
 import com.hololo.tutorial.library.StepFragment;
 import com.hololo.tutorial.library.TutorialActivity;
-import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
+
 
 
 public class MyInstructionActivity extends TutorialActivity implements StepFragment.OnButtonClickedListener {
@@ -54,7 +54,7 @@ public class MyInstructionActivity extends TutorialActivity implements StepFragm
 
     private void writeToSharedPraf() {
 
-            SharedPreferencesManager.getInstance().putValue(IS_FIRST_TIME, false);
+            My_Share_Pref.Companion.saveIsFirstTime(this, false);
 
     }
 

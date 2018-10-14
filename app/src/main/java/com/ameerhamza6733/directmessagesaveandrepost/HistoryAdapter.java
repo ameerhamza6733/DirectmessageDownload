@@ -5,6 +5,9 @@ package com.ameerhamza6733.directmessagesaveandrepost;
  */
 
 
+import android.content.Context;
+import android.content.Intent;
+import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -16,7 +19,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.clans.fab.FloatingActionButton;
-import com.kingfisher.easy_sharedpreference_library.SharedPreferencesManager;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
@@ -60,7 +62,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
         // with that element
         viewHolder.getTextView().setText(mDataSet.get(viewHolder.getAdapterPosition()).getHashTags());
         viewHolder.getmDir().setText(mDataSet.get(viewHolder.getAdapterPosition()).getContent());
-        Picasso.with(viewHolder.getTextView().getContext()).load(mDataSet.get(viewHolder.getAdapterPosition()).getImageURL()).into(viewHolder.getImageView());
+        Picasso.get().load(mDataSet.get(viewHolder.getAdapterPosition()).getImageURL()).into(viewHolder.getImageView());
         viewHolder.getmCopyHashTag().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -104,18 +106,34 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
             @Override
             public void onClick(View v) {
 
-                File file = new File(mDataSet.get(position).getPathToStorage());
+                File file = new File(mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage());
                 if (file.exists()) {
                     file.delete();
                 }
-                SharedPreferencesManager.getInstance().remove(mDataSet.get(position).getPostID());
-                mDataSet.remove(position);
+               My_Share_Pref.Companion.removePost(viewHolder.getFabDelete().getContext(),mDataSet.get(viewHolder.getAdapterPosition()).getUrl());
+                mDataSet.remove(viewHolder.getAdapterPosition());
                 notifyDataSetChanged();
             }
         });
 
+        viewHolder.getAppCompatImageView().setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent internt = new Intent(v.getContext(),PlayerActivity.class);
+                internt.putExtra(PlayerActivity.EXTRA_VIDEO_PATH,mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage());
+                v.getContext().startActivity(internt);
+            }
+        });
+
+        if (mDataSet.get(viewHolder.getAdapterPosition()).getMedium().equals("image"))
+            viewHolder.getAppCompatImageView().setVisibility(View.INVISIBLE);
+
 
     }
+
+
+
+
     // END_INCLUDE(recyclerViewOnCreateViewHolder)
 
     // Return the size of your dataset (invoked by the layout manager)
@@ -136,6 +154,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
         private final TextView mDir;
         private final FloatingActionButton repostButton;
         private final FloatingActionButton fabDelete;
+        private final AppCompatImageView appCompatImageView;
 
         public ViewHolder(View v) {
             super(v);
@@ -152,6 +171,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
             mCopyHashTag = v.findViewById(R.id.copy_hash_tag_button);
             mDir = v.findViewById(R.id.textView_description);
             repostButton = v.findViewById(R.id.floatingActionButtonRepost);
+            appCompatImageView=v.findViewById(R.id.btPlay);
             fabDelete = v.findViewById(R.id.floatingActionButtonDelete);
         }
 
@@ -181,6 +201,10 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
 
         public FloatingActionButton getFabDelete() {
             return fabDelete;
+        }
+
+        public AppCompatImageView getAppCompatImageView() {
+            return appCompatImageView;
         }
     }
 }

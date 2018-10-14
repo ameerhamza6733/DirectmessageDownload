@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_feedback -> feedBack()
             R.id.nav_rate -> openMarket(this.packageName)
             R.id.nav_history -> {
-                fragmentManager?.beginTransaction()?.replace(R.id.container, HistoryFragment())?.commit()
+                startActivity(Intent(this,HistoryActivity::class.java))
             }
 
             R.id.nav_action_settings -> {
