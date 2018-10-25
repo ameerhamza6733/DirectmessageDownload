@@ -97,7 +97,7 @@
                     android:layout_width="wrap_content"
                     app:fab_size="mini"
                     android:layout_height="wrap_content"
-                    app:srcCompat="@drawable/ic_share_white_24dp"
+
                     fab:fab_label="Share" />
 
                 <com.github.clans.fab.FloatingActionButton

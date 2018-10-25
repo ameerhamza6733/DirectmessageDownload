@@ -99,6 +99,7 @@ class DownloadingFragment : Fragment() {
                 Toast.makeText(activity, "Downloading complete", Toast.LENGTH_SHORT).show()
                 numberProgressBar.progress = 100
 
+
                 mFabRepostButton.visibility = View.VISIBLE
                 mFabShareButton.visibility = View.VISIBLE
 
@@ -387,7 +388,6 @@ class DownloadingFragment : Fragment() {
 
                 if (!msg.equals(""))
                     if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
-
                         intiDownloader()
             }
 
@@ -545,12 +545,14 @@ class DownloadingFragment : Fragment() {
                     mPost.content = mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length)
 
                 }
-                Picasso.get().load(mPost.imageURL).into(mImage)
+                mCaptionTextView.text=mPost.content
+
+
             } catch (Ex: Exception) {
                 Toast.makeText(activity, "Some thing wrong Error code 6 Error message : " + Ex.message, Toast.LENGTH_LONG).show()
                 Ex.printStackTrace()
             }
-
+            Picasso.get().load( mPost.imageURL) .into(mImage)
 
         }
 
