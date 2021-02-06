@@ -3,11 +3,11 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/DirectmessageDownload.iml" filepath="$PROJECT_DIR$/.idea/DirectmessageDownload.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/dachshundtablayout/dachshundtablayout.iml" filepath="$PROJECT_DIR$/dachshundtablayout/dachshundtablayout.iml" />
-      <module fileurl="file://$PROJECT_DIR$/easy_sharedpreference_library/easy_sharedpreference_library.iml" filepath="$PROJECT_DIR$/easy_sharedpreference_library/easy_sharedpreference_library.iml" />
-      <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
-      <module fileurl="file://$PROJECT_DIR$/standOut/standOut.iml" filepath="$PROJECT_DIR$/standOut/standOut.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/DirectmessageDownload.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/DirectmessageDownload.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/dachshundtablayout/DirectmessageDownload.dachshundtablayout.iml" filepath="$PROJECT_DIR$/.idea/modules/dachshundtablayout/DirectmessageDownload.dachshundtablayout.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/easy_sharedpreference_library/DirectmessageDownload.easy_sharedpreference_library.iml" filepath="$PROJECT_DIR$/.idea/modules/easy_sharedpreference_library/DirectmessageDownload.easy_sharedpreference_library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/library/DirectmessageDownload.library.iml" filepath="$PROJECT_DIR$/.idea/modules/library/DirectmessageDownload.library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/standOut/DirectmessageDownload.standOut.iml" filepath="$PROJECT_DIR$/.idea/modules/standOut/DirectmessageDownload.standOut.iml" />
     </modules>
   </component>
 </project>

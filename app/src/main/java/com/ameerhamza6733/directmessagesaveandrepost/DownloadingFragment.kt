@@ -2,6 +2,7 @@ package com.ameerhamza6733.directmessagesaveandrepost
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,39 +13,38 @@ import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.MediaStore
-import android.support.design.widget.Snackbar
-import android.support.v4.app.Fragment
-import android.support.v4.content.FileProvider
-import android.support.v7.app.AlertDialog
-import android.support.v7.widget.AppCompatImageView
-import android.support.v7.widget.CardView
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import com.ameerhamza6733.directmessagesaveandrepost.Settings.ATO_START_DOWNLOADING_
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.AppCompatImageView
+import androidx.cardview.widget.CardView
+import androidx.core.content.FileProvider
+import androidx.fragment.app.Fragment
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-
-import com.crashlytics.android.Crashlytics
 import com.daimajia.numberprogressbar.NumberProgressBar
-import com.daimajia.numberprogressbar.OnProgressBarListener
 import com.github.clans.fab.FloatingActionButton
+import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.liulishuo.filedownloader.BaseDownloadTask
 import com.liulishuo.filedownloader.FileDownloadListener
 import com.liulishuo.filedownloader.FileDownloader
 import com.squareup.picasso.Picasso
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
+import org.jsoup.select.Elements
 import java.io.File
+
 
 /**
  * Created by AmeerHamza on 10/6/2017.
@@ -60,9 +60,10 @@ import java.io.File
 
 class DownloadingFragment : Fragment() {
 
-
+    val Crashlytics=FirebaseCrashlytics.getInstance()
     companion object {
         private val ARG_CAUGHT = "myFragment_caught"
+        private val TAG="DownloadingFragmentTAG"
 
         fun newInstance(temp: Int): DownloadingFragment {
 
@@ -93,33 +94,36 @@ class DownloadingFragment : Fragment() {
         }
 
         override fun completed(task: BaseDownloadTask) {
-            numberProgressBar.progress = 100
 
-            activity!!.runOnUiThread {
-                Toast.makeText(activity, "Downloading complete", Toast.LENGTH_SHORT).show()
-                numberProgressBar.progress = 100
+            activity?.let {
+                it.runOnUiThread {
+                    numberProgressBar.progress = 100
+                    Toast.makeText(activity, "Downloading complete", Toast.LENGTH_SHORT).show()
+                    numberProgressBar.progress = 100
 
 
-                mFabRepostButton.visibility = View.VISIBLE
-                mFabShareButton.visibility = View.VISIBLE
+                    mFabRepostButton.visibility = View.VISIBLE
+                    mFabShareButton.visibility = View.VISIBLE
 
-                if(mPost.medium!="image") btPlayVideo.visibility=View.VISIBLE
+                    if(mPost.medium!="image") btPlayVideo.visibility=View.VISIBLE
 
-                mPost.pathToStorage = task.path
-                this@DownloadingFragment.task=task
+                    mPost.pathToStorage = task.path
+                    this@DownloadingFragment.task=task
 
-                activity?.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, FileProvider.getUriForFile(activity!!,
-                        BuildConfig.APPLICATION_ID + ".provider",
-                        File(task.path)) ))
-                MediaScannerConnection.scanFile(activity?.applicationContext,
-                        arrayOf(task.path), null
-                ) { path, uri ->
-                    Log.i("ExternalStorage", "Scanned $path:")
-                    Log.i("ExternalStorage", "-> uri=$uri")
+                    activity?.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, FileProvider.getUriForFile(it,
+                            BuildConfig.APPLICATION_ID + ".provider",
+                            File(task.path))))
+                    MediaScannerConnection.scanFile(activity?.applicationContext,
+                            arrayOf(task.path), null
+                    ) { path, uri ->
+                        Log.i("ExternalStorage", "Scanned $path:")
+                        Log.i("ExternalStorage", "-> uri=$uri")
+                    }
+                    saveToPraf(mPost)
+                    Crashlytics.log("OnDownloadCompleted")
                 }
-                saveToPraf(mPost)
-                Crashlytics.log("OnDownloadCompleted")
             }
+
         }
 
         override fun paused(task: BaseDownloadTask, soFarBytes: Int, totalBytes: Int) {}
@@ -148,7 +152,7 @@ class DownloadingFragment : Fragment() {
 
 
         } catch (ex: Exception) {
-            Crashlytics.logException(ex);
+            Crashlytics.recordException(ex);
             // FirebaseCrash.report(Exception(" private fun shareIntent Error code 3 Error : " + ex.message));
             Toast.makeText(activity, "some thing working while sharing Error: code 3  " + ex.message, Toast.LENGTH_LONG).show()
         }
@@ -166,7 +170,7 @@ class DownloadingFragment : Fragment() {
 
             InstaIntent().createVideoInstagramIntent("image/*", mPost.pathToStorage, activity, repost);
         } catch (e: Exception) {
-            Crashlytics.logException(e);
+            Crashlytics.recordException(e);
             //  FirebaseCrash.report(Exception("private fun shareImageIntentToInstagram Error code 4 Error : " + e.message))
             Toast.makeText(activity, "Some thing wrong Error code 4 Error message : " + e.message, Toast.LENGTH_LONG).show()
         }
@@ -188,7 +192,7 @@ class DownloadingFragment : Fragment() {
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
     private lateinit var rootView: View;
-    private lateinit var rootCardView:CardView
+    private lateinit var rootCardView: CardView
     private lateinit var btPlayVideo:AppCompatImageView
 
     private var task: BaseDownloadTask?=null
@@ -253,7 +257,7 @@ class DownloadingFragment : Fragment() {
             hashTagAndCaption += mCaptionTextView.text.toString()
         }
         val clipbordHelper = ClipBrodHelper()
-        clipbordHelper.WriteToClipBord(activity, hashTagAndCaption)
+        clipbordHelper.WriteToClipBord(activity!!.applicationContext, hashTagAndCaption)
     }
 
     private fun copyCaptionToClipBord() {
@@ -300,33 +304,13 @@ class DownloadingFragment : Fragment() {
     private fun PlayVideo() {
 
 
-            var internt = Intent(activity,PlayerActivity::class.java)
-            internt.putExtra(PlayerActivity.EXTRA_VIDEO_PATH,mPost.pathToStorage)
+            var internt = Intent(activity, PlayerActivity::class.java)
+            internt.putExtra(PlayerActivity.EXTRA_VIDEO_PATH, mPost.pathToStorage)
         activity?.startActivity(internt)
 
     }
 
-    private fun downloadCaption(postUrl: String) {
 
-        val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, "https://api.instagram.com/oembed/?url=" + postUrl, null,
-                Response.Listener { response ->
-                    var text = response.getString("title")
-                    if (!text.isEmpty()) {
-                        mPost.content = response.getString("title")
-                        RemoveHashTagFromCaption()
-                    }
-
-                },
-                Response.ErrorListener { error ->
-                    // TODO: Handle error
-                    error.printStackTrace()
-                    Toast.makeText(activity, "Unable to get full caption", Toast.LENGTH_LONG).show()
-                }
-        )
-        Volley.newRequestQueue(activity).add(jsonObjectRequest);
-
-
-    }
 
     override fun onPause() {
         super.onPause()
@@ -352,6 +336,7 @@ class DownloadingFragment : Fragment() {
             }
         } else {
             mEditTextInputURl.text.clear()
+            mEditTextInputURl.setText("https://www.instagram.com/p/CJlnG5OhIlO/?igshid=jwqg0mcl8rb")
             Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
             mCardView.visibility = View.INVISIBLE
             mProgressBar.visibility = View.INVISIBLE
@@ -405,7 +390,7 @@ class DownloadingFragment : Fragment() {
             rootCardView.visibility=View.VISIBLE
             if (!mEditTextInputURl.text.toString().isEmpty()) {
                 grabData(mEditTextInputURl.text.toString()).execute()
-                downloadCaption(mEditTextInputURl.text.toString())
+               // downloadCaption(mEditTextInputURl.text.toString())
             }
 
         } else {
@@ -415,8 +400,8 @@ class DownloadingFragment : Fragment() {
 
     private var mContext: Context? = null
 
-    override fun onAttach(context: Context?) {
-        super.onAttach(context)
+    override fun onAttach(activity: Activity) {
+        super.onAttach(activity)
         mContext = context
         Crashlytics.log("onAttach");
     }
@@ -500,6 +485,21 @@ class DownloadingFragment : Fragment() {
                             mPost.postID = mPost.postID.replace("/", "")
                         }
                     }
+                    //val script = document!!.getElementsByTag("script")
+                    try {
+                        val scriptElements: Elements = document!!.getElementsByTag("script")
+
+                        for (element in scriptElements) {
+                            if (element.attr("type").equals("application/ld+json")){
+                                val json =JSONObject(element.dataNodes()[0].wholeData)
+
+                                mPost.content=json.getString("caption")
+                            }
+                        }
+                    }catch (e:Exception){
+                        e.printStackTrace()
+                    }
+
                 }
 
 
@@ -509,7 +509,7 @@ class DownloadingFragment : Fragment() {
                 activity?.runOnUiThread({
                     Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
                     isSomeThingWrong = true
-                    Crashlytics.logException(ex);
+                    Crashlytics.recordException(ex);
                 })
 
             }
@@ -528,7 +528,6 @@ class DownloadingFragment : Fragment() {
                 Snackbar.make(mCardView, "unable to get downloading url", Snackbar.LENGTH_INDEFINITE).setAction("try again") {
                     if (!mEditTextInputURl.text.toString().isEmpty()) {
                         grabData(mEditTextInputURl.text.toString()).execute()
-                        downloadCaption(mEditTextInputURl.text.toString())
                     }
                 }.show()
             }
@@ -540,19 +539,8 @@ class DownloadingFragment : Fragment() {
 
             mCardView.visibility = View.VISIBLE
             mHashTagTextView.setText(mPost.hashTags)
-            try {
-                if (!mPost.content.isNullOrEmpty() && isContainsColan()) {
-                    mPost.content = mPost.content.substring(mPost.content.indexOf(":"), mPost.content.length)
-
-                }
-                mCaptionTextView.text=mPost.content
-
-
-            } catch (Ex: Exception) {
-                Toast.makeText(activity, "Some thing wrong Error code 6 Error message : " + Ex.message, Toast.LENGTH_LONG).show()
-                Ex.printStackTrace()
-            }
-            Picasso.get().load( mPost.imageURL) .into(mImage)
+            mCaptionTextView.text=mPost.content
+            Picasso.get().load(mPost.imageURL) .into(mImage)
 
         }
 
@@ -603,7 +591,7 @@ class DownloadingFragment : Fragment() {
     private fun saveToPraf(mPost: Post) {
         try {
 
-                My_Share_Pref.savePost(activity!!,mPost.url,mPost)
+            activity?.let { My_Share_Pref.savePost(it, mPost.url, mPost) }
         } catch (ex: Exception) {
             Toast.makeText(activity, "Some thing wrong Error code 8 Error message : " + ex.message, Toast.LENGTH_LONG).show()
 
@@ -631,7 +619,7 @@ class DownloadingFragment : Fragment() {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + activity?.packageName)))
                 }
                 .setNegativeButton("never") { dialog, which ->
-                    My_Share_Pref.saveRateMe(activity!!,false)
+                    My_Share_Pref.saveRateMe(activity!!, false)
 
                 }
                 .setIcon(android.R.drawable.star_big_on)

@@ -4,13 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.support.design.widget.NavigationView
-import android.support.v4.app.FragmentManager
-import android.support.v4.view.GravityCompat
-import android.support.v4.widget.DrawerLayout
-import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.Toolbar
+import com.google.android.material.navigation.NavigationView
+import androidx.fragment.app.FragmentManager
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -23,6 +23,15 @@ import com.google.android.gms.ads.reward.RewardedVideoAd
 import com.webianks.easy_feedback.EasyFeedback
 import java.net.MalformedURLException
 import java.net.URL
+import java.util.*
+import com.google.android.gms.ads.initialization.InitializationStatus
+
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener
+
+import com.google.android.gms.ads.MobileAds
+
+
+
 
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -36,6 +45,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+        val admonConfig=RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("84B80A634F2B75467E10A4579885F9C7"))
+        MobileAds.setRequestConfiguration(admonConfig.build());
+        MobileAds.initialize(this) { }
 
         mContext = this
 
@@ -97,7 +109,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_feedback -> feedBack()
             R.id.nav_rate -> openMarket(this.packageName)
             R.id.nav_history -> {
-                startActivity(Intent(this,HistoryActivity::class.java))
+                startActivity(Intent(this, HistoryActivity::class.java))
             }
 
             R.id.nav_action_settings -> {
@@ -126,7 +138,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun checkForConsent() {
         if (mContext == null)
             return
+        ConsentInformation.getInstance(mContext).addTestDevice("84B80A634F2B75467E10A4579885F9C7")
         val consentInformation = ConsentInformation.getInstance(mContext)
+
         val publisherIds = arrayOf("pub-5168564707064012")
         consentInformation.requestConsentInfoUpdate(publisherIds, object : ConsentInfoUpdateListener {
             override fun onConsentInfoUpdated(consentStatus: ConsentStatus) {
@@ -227,6 +241,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         mInterstitialAd = InterstitialAd(this@MainActivity)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
         val mAdView: AdView = findViewById(R.id.adView);
+       val requestConfiguration= RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("84B80A634F2B75467E10A4579885F9C7"))
         val adRequest = AdRequest.Builder()
                 .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
                 .build()
@@ -324,7 +339,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     public fun showAds() {
-        Log.d(TAG,"showing ads");
+        Log.d(TAG, "showing ads");
         if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
             mRewardedVideoAd?.show()
         } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
