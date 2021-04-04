@@ -6,6 +6,10 @@
             android:visible="true"
             android:icon="@drawable/ic_history_black_24dp"
             android:title="History" />
+        <item android:id="@+id/nav_logout"
+            android:visible="true"
+
+            android:title="Logout" />
         <item
             android:id="@+id/nav_rate"
             android:icon="@drawable/ic_star_black_24dp"

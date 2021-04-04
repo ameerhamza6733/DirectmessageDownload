@@ -9,6 +9,11 @@
 
     <string name="banner_ad_test_id">ca-app-pub-3940256099942544/6300978111</string>
     <string name="banner_ad_real_id">ca-app-pub-5168564707064012/8638685692</string>
+    <string name="native_ad_real_id">ca-app-pub-5168564707064012/7222882655</string>
 
     <string name="device_id">B94C1B8999D3B59117198A259685D4F8</string>
+    <string name="get_cookies">Get cookies</string>
+    <string name="refresh">Refresh</string>
+    <string name="login_error_loading_cookies">Error loading cookies</string>
+    <string name="admob_app_id">ca-app-pub-5168564707064012~5058501866</string>
 </resources>

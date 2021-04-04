@@ -9,12 +9,19 @@ android {
         applicationId "com.ameerhamza6733.directmessagesaveandrepost"
         minSdkVersion 17
         targetSdkVersion 30
-        versionCode 37
-        versionName "1.0.37"
+        versionCode 39
+        versionName "1.0.39"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
 
+
+    }
+    compileOptions {
+        // Flag to enable support for the new language APIs
+        coreLibraryDesugaringEnabled true
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
     }
     buildTypes {
         release {
@@ -30,7 +37,7 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
     //noinspection GradleCompatible
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
@@ -44,7 +51,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.1'
 
     //noinspection GradleCompatible
-    implementation 'com.google.firebase:firebase-ads:19.6.0'
+    implementation 'com.google.firebase:firebase-ads:19.8.0'
 
     implementation 'com.webianks.library:easy-feedback:1.0.2'
     implementation 'com.github.clans:fab:1.6.4'
@@ -59,6 +66,8 @@ dependencies {
     implementation 'com.google.android.exoplayer:exoplayer-ui:2.8.0'
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'com.google.code.gson:gson:2.8.6'
+
+    implementation project(':nativetemplates')
 
 
 }

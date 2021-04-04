@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.drawable.ColorDrawable
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.AsyncTask
@@ -22,14 +23,19 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
+import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants
+import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants.LOGIN_RESULT_CODE
+import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils
+import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils.settingsHelper
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.github.clans.fab.FloatingActionButton
+import com.google.android.ads.nativetemplates.NativeTemplateStyle
+import com.google.android.ads.nativetemplates.TemplateView
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.liulishuo.filedownloader.BaseDownloadTask
@@ -38,12 +44,14 @@ import com.liulishuo.filedownloader.FileDownloader
 import com.squareup.picasso.Picasso
 import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
+import org.json.JSONException
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
 import org.jsoup.select.Elements
 import java.io.File
+import java.util.*
 
 
 /**
@@ -59,6 +67,7 @@ import java.io.File
  */
 
 class DownloadingFragment : Fragment() {
+
 
     val Crashlytics=FirebaseCrashlytics.getInstance()
     companion object {
@@ -194,14 +203,16 @@ class DownloadingFragment : Fragment() {
     private lateinit var rootView: View;
     private lateinit var rootCardView: CardView
     private lateinit var btPlayVideo:AppCompatImageView
+    private lateinit var nativeAdTempalte: TemplateView
 
     private var task: BaseDownloadTask?=null
     private lateinit var mBitMapImageToShare: Bitmap
-    val mPost = Post()
+    private lateinit var mPost:Post
     lateinit var postKeyFromShardPraf: String
 
     private var manualyDownload = false
     private var atoSaveStartDownloading :Boolean=true;
+    private var postUrl=""
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
@@ -222,15 +233,55 @@ class DownloadingFragment : Fragment() {
             activity?.startActivity(intent)
         }
         if (!firstTIme && rateMe) {
-            showRateMe()
+
         }
         atoSaveStartDownloading =My_Share_Pref.getAtoSave(activity!!)
 
 
         setUpListerners()
         copyDataFromClipBrod()
+        laodNativeAd()
 
     }
+    private fun laodNativeAd(){
+        val adLoader: AdLoader = AdLoader.Builder(requireActivity(), getString(R.string.native_ad_real_id)).forUnifiedNativeAd { nativeAd->
+
+            val styles = NativeTemplateStyle.Builder().withMainBackgroundColor(ColorDrawable(ContextCompat.getColor(requireActivity(), R.color.cardview_light_background))).build()
+
+            nativeAdTempalte.setStyles(styles)
+            nativeAdTempalte.setNativeAd(nativeAd)
+
+        }
+                .build()
+
+
+        val adRequest = AdRequest.Builder()
+                .build()
+        adLoader.loadAd(adRequest)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+       if (requestCode== LOGIN_RESULT_CODE && resultCode==Activity.RESULT_OK){
+           val cookie = data!!.getStringExtra("cookie")
+           CookieUtils.setupCookies(cookie)
+           settingsHelper.putString(Constants.COOKIE, cookie)
+           // No use as the timing of show is unreliable
+           // Toast.makeText(getContext(), R.string.login_success_loading_cookies, Toast.LENGTH_SHORT).show();
+
+           // adds cookies to database for quick access
+           // No use as the timing of show is unreliable
+           // Toast.makeText(getContext(), R.string.login_success_loading_cookies, Toast.LENGTH_SHORT).show();
+
+           // adds cookies to database for quick access
+           val uid: Long = CookieUtils.getUserIdFromCookie(cookie)
+           mEditTextInputURl.setText(postUrl)
+           checkBuildNO()
+      }
+    }
+
+
 
     private fun copyHashTagToClipBord() {
         var mainActivity = activity as MainActivity
@@ -274,21 +325,7 @@ class DownloadingFragment : Fragment() {
 
     }
 
-    private fun RemoveHashTagFromCaption() {
 
-        if (mPost.content != null && !mPost.content.isEmpty()) {
-            if (mPost.hashTags != null && !mPost.hashTags.isEmpty()) {
-                mPost.content = mPost.content.replace("#", "")
-                var hashTagsArray = mPost.hashTags.split("#")
-                hashTagsArray
-                        .filter { mPost.content.toLowerCase().contains(it.toLowerCase()) }
-                        .forEach { mPost.content = mPost.content.replace(it, "") }
-                mCaptionTextView.text = mPost.content
-            }
-        }
-
-
-    }
 
     private fun setUpListerners() {
         mCheckAndSaveButton.setOnClickListener({ manualyDownload = true; checkBuildNO() })
@@ -336,7 +373,6 @@ class DownloadingFragment : Fragment() {
             }
         } else {
             mEditTextInputURl.text.clear()
-            mEditTextInputURl.setText("https://www.instagram.com/p/CJlnG5OhIlO/?igshid=jwqg0mcl8rb")
             Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
             mCardView.visibility = View.INVISIBLE
             mProgressBar.visibility = View.INVISIBLE
@@ -345,6 +381,7 @@ class DownloadingFragment : Fragment() {
     }
 
     fun staupUI(view: View) {
+        nativeAdTempalte=view.findViewById(R.id.my_template)
         mEditTextInputURl = view.findViewById<EditText>(R.id.URL_Input_edit_text) as EditText
         mCheckAndSaveButton = view.findViewById<Button>(R.id.chack_and_save_post) as Button
         mImage = view.findViewById<ImageView>(R.id.imageView) as ImageView
@@ -365,14 +402,14 @@ class DownloadingFragment : Fragment() {
 
     fun checkBuildNO() {
 
+        postUrl=mEditTextInputURl.text.toString()
         if (Build.VERSION.SDK_INT > 22) {
             if (activity!!.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
                 askPermistion()
             else {
-                val msg: String = mEditTextInputURl.text.toString()
 
-                if (!msg.equals(""))
-                    if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
+                if (!postUrl.equals(""))
+                    if (!checkIFPosAllreadyDownloaded(postUrl))
                         intiDownloader()
             }
 
@@ -388,9 +425,9 @@ class DownloadingFragment : Fragment() {
     private fun intiDownloader() {
         if (atoSaveStartDownloading || manualyDownload) {
             rootCardView.visibility=View.VISIBLE
-            if (!mEditTextInputURl.text.toString().isEmpty()) {
-                grabData(mEditTextInputURl.text.toString()).execute()
-               // downloadCaption(mEditTextInputURl.text.toString())
+            if (!postUrl.isEmpty()) {
+                grabData(postUrl).execute()
+
             }
 
         } else {
@@ -420,10 +457,10 @@ class DownloadingFragment : Fragment() {
                     override fun onGrant() {
                         val msg: String = mEditTextInputURl.text.toString()
 
-                        if (!msg.equals(""))
-                            if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
+                        if (!postUrl.equals(""))
+                            if (!checkIFPosAllreadyDownloaded(postUrl))
                                 intiDownloader()
-                        grabData(mEditTextInputURl.text.toString()).execute()
+
                     }
 
                     override fun onDenied(permission: String) {
@@ -448,6 +485,7 @@ class DownloadingFragment : Fragment() {
         override fun onPreExecute() {
             super.onPreExecute()
 
+            mPost=Post()
             mPost.url = ConnURL;
             mProgressBar.progress = 100
             mProgressBar.visibility = View.VISIBLE
@@ -486,19 +524,21 @@ class DownloadingFragment : Fragment() {
                         }
                     }
                     //val script = document!!.getElementsByTag("script")
-                    try {
+
                         val scriptElements: Elements = document!!.getElementsByTag("script")
 
                         for (element in scriptElements) {
                             if (element.attr("type").equals("application/ld+json")){
                                 val json =JSONObject(element.dataNodes()[0].wholeData)
 
-                                mPost.content=json.getString("caption")
+                               try{
+                                   mPost.content=json.getString("caption")
+                               }catch (json: JSONException){
+
+                               }
                             }
                         }
-                    }catch (e:Exception){
-                        e.printStackTrace()
-                    }
+
 
                 }
 
@@ -525,11 +565,15 @@ class DownloadingFragment : Fragment() {
                 Downloader()
             } else {
                 mProgressBar.visibility = View.INVISIBLE
-                Snackbar.make(mCardView, "unable to get downloading url", Snackbar.LENGTH_INDEFINITE).setAction("try again") {
-                    if (!mEditTextInputURl.text.toString().isEmpty()) {
-                        grabData(mEditTextInputURl.text.toString()).execute()
-                    }
-                }.show()
+               try{
+                   Snackbar.make(rootCardView, "unable to get downloading url", Snackbar.LENGTH_INDEFINITE).setAction("try again") {
+                       if (!mEditTextInputURl.text.toString().isEmpty()) {
+                           grabData(mEditTextInputURl.text.toString()).execute()
+                       }
+                   }.show()
+               }catch (E:Exception){
+
+               }
             }
         }
     }
@@ -553,6 +597,9 @@ class DownloadingFragment : Fragment() {
 
             try {
 
+                if (mPost.medium==null ){
+                    postIsPrivate()
+                }
                 var downloadingFileUrl =""
                 downloadingFileUrl = if(mPost.medium=="image"){
                     mPost.imageURL
@@ -606,6 +653,23 @@ class DownloadingFragment : Fragment() {
         }
 
     }
+
+    private fun postIsPrivate(){
+
+        val builder: AlertDialog.Builder
+
+        builder = AlertDialog.Builder(activity!!)
+        builder.setTitle("Private post")
+                .setMessage("You need to login your account to downland this post, you will login your account on instagram official website we will not obtain your information in any way ")
+                .setPositiveButton("Login") { dialog, which ->
+                    // continue with delete
+                   startActivityForResult(Intent(activity, Login::class.java), LOGIN_RESULT_CODE)
+                }
+
+
+                .show()
+    }
+
 
 
     private fun showRateMe() {

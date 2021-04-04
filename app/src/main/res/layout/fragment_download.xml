@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   android:background="@color/cardview_light_background"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:custom="http://schemas.android.com/apk/res-auto"
     xmlns:fab="http://schemas.android.com/apk/res-auto"
@@ -78,7 +79,7 @@
                 <ImageView
                     android:id="@+id/imageView"
                     android:layout_width="300dp"
-                    android:layout_height="300dp"
+                    android:layout_height="250dp"
                     android:layout_alignParentEnd="true"
                     android:layout_alignParentLeft="true"
                     android:layout_alignParentRight="true"
@@ -86,6 +87,7 @@
                     android:layout_alignParentTop="true"
 
                     android:scaleType="centerCrop" />
+
 
 
                 <TextView
@@ -97,6 +99,17 @@
                     android:padding="16dp"
                     android:textColor="#0d47a1" />
 
+                <com.google.android.ads.nativetemplates.TemplateView
+
+                    xmlns:ads="http://schemas.android.com/apk/res-auto"
+
+                    android:id="@+id/my_template"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/textView_description"
+                    app:gnt_template_type="@layout/gnt_small_template_view"
+                   >
+                </com.google.android.ads.nativetemplates.TemplateView>
 
                 <LinearLayout
 
@@ -105,7 +118,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_alignParentRight="true"
-                    android:layout_below="@+id/textView_description"
+                    android:layout_below="@+id/my_template"
                     android:orientation="horizontal">
 
                     <Button

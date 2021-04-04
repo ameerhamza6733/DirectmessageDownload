@@ -4,34 +4,28 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import com.google.android.material.navigation.NavigationView
-import androidx.fragment.app.FragmentManager
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
+import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.FragmentManager
+import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils
 import com.google.ads.consent.*
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.reward.RewardedVideoAd
+import com.google.android.material.navigation.NavigationView
 import com.webianks.easy_feedback.EasyFeedback
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
-import com.google.android.gms.ads.initialization.InitializationStatus
-
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener
-
-import com.google.android.gms.ads.MobileAds
-
-
-
 
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -47,7 +41,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setSupportActionBar(toolbar)
         val admonConfig=RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("84B80A634F2B75467E10A4579885F9C7"))
         MobileAds.setRequestConfiguration(admonConfig.build());
-        MobileAds.initialize(this) { }
+        MobileAds.initialize(this, getString(R.string.admob_app_id))
 
         mContext = this
 
@@ -111,7 +105,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_history -> {
                 startActivity(Intent(this, HistoryActivity::class.java))
             }
+            R.id.nav_logout -> {
+                CookieUtils.setupCookies("LOGOUT")
+                Toast.makeText(this,"Logout",Toast.LENGTH_LONG).show()
 
+            }
             R.id.nav_action_settings -> {
                 startActivity(Intent(this@MainActivity, com.ameerhamza6733.directmessagesaveandrepost.Settings::class.java))
             }
@@ -236,16 +234,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (mContext == null)
             return
         ConsentInformation.getInstance(this@MainActivity).consentStatus = ConsentStatus.PERSONALIZED
-        MobileAds.initialize(this@MainActivity, "ca-app-pub-5168564707064012~5058501866");
 
         mInterstitialAd = InterstitialAd(this@MainActivity)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-        val mAdView: AdView = findViewById(R.id.adView);
-       val requestConfiguration= RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("84B80A634F2B75467E10A4579885F9C7"))
+
+
+
         val adRequest = AdRequest.Builder()
-                .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
                 .build()
-        mAdView.loadAd(adRequest)
+
         mInterstitialAd?.loadAd(adRequest)
         mInterstitialAd?.adListener = object : AdListener() {
             override fun onAdClosed() {
@@ -281,13 +278,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             return
         ConsentInformation.getInstance(this@MainActivity).consentStatus = ConsentStatus.NON_PERSONALIZED
 
-        MobileAds.initialize(this@MainActivity, "ca-app-pub-5168564707064012~5058501866");
-        val mAdView: AdView = findViewById(R.id.adView);
+
         val adRequest = AdRequest.Builder()
-                .addTestDevice("B94C1B8999D3B59117198A259685D4F8")
                 .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
                 .build()
-        mAdView.loadAd(adRequest)
+
 
         mInterstitialAd = InterstitialAd(this@MainActivity)
         mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"

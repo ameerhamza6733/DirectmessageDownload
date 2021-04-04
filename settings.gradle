@@ -1,2 +1,3 @@
+include ':nativetemplates'
 include ':app', ':dachshundtablayout', ':easy_sharedpreference_library', ':library'
 include ':standOut'
