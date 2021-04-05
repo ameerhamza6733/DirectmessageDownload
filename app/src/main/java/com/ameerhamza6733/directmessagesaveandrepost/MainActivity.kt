@@ -22,7 +22,7 @@ import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.reward.RewardedVideoAd
 import com.google.android.material.navigation.NavigationView
-import com.webianks.easy_feedback.EasyFeedback
+
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Handle navigation view item clicks here.
         val id = item.itemId
         when (id) {
-            R.id.nav_feedback -> feedBack()
+
             R.id.nav_rate -> openMarket(this.packageName)
             R.id.nav_history -> {
                 startActivity(Intent(this, HistoryActivity::class.java))
@@ -120,13 +120,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
 
-    private fun feedBack() {
-        EasyFeedback.Builder(this)
-                .withEmail("develpore2017@gmail.com")
-                .withSystemInfo()
-                .build()
-                .start()
-    }
+
 
     public fun checkForConsentForAdmob() {
         checkForConsent()

@@ -14,10 +14,7 @@
             android:id="@+id/nav_rate"
             android:icon="@drawable/ic_star_black_24dp"
             android:title="Rate me" />
-        <item
-            android:id="@+id/nav_feedback"
-            android:icon="@drawable/ic_feedback_black_24dp"
-            android:title="Feed back" />
+
 
         <item
             android:id="@+id/nav_action_settings"

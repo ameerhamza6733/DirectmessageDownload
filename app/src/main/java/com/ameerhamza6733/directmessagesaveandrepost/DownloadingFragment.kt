@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -139,7 +140,9 @@ class DownloadingFragment : Fragment() {
 
         override fun error(task: BaseDownloadTask, e: Throwable) {
 
-            Snackbar.make(numberProgressBar, "Error: ", Snackbar.LENGTH_LONG).show()
+            if (activity!=null && isAdded){
+                Toast.makeText(activity, "Error: Please try again with different post", Toast.LENGTH_LONG).show()
+            }
 
         }
 
@@ -222,9 +225,9 @@ class DownloadingFragment : Fragment() {
         return view
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         FileDownloader.setup(activity)
         var rateMe = My_Share_Pref.getRateMe(activity!!)
         var firstTIme =My_Share_Pref.getISFirsTime(activity!!)
@@ -241,16 +244,16 @@ class DownloadingFragment : Fragment() {
         setUpListerners()
         copyDataFromClipBrod()
         laodNativeAd()
-
     }
     private fun laodNativeAd(){
         val adLoader: AdLoader = AdLoader.Builder(requireActivity(), getString(R.string.native_ad_real_id)).forUnifiedNativeAd { nativeAd->
 
             val styles = NativeTemplateStyle.Builder().withMainBackgroundColor(ColorDrawable(ContextCompat.getColor(requireActivity(), R.color.cardview_light_background))).build()
 
-            nativeAdTempalte.setStyles(styles)
-            nativeAdTempalte.setNativeAd(nativeAd)
-
+            if (isAdded && activity!=null){
+                nativeAdTempalte.setStyles(styles)
+                nativeAdTempalte.setNativeAd(nativeAd)
+            }
         }
                 .build()
 
@@ -328,7 +331,10 @@ class DownloadingFragment : Fragment() {
 
 
     private fun setUpListerners() {
-        mCheckAndSaveButton.setOnClickListener({ manualyDownload = true; checkBuildNO() })
+        mCheckAndSaveButton.setOnClickListener({
+            postUrl=mEditTextInputURl.text.toString()
+            manualyDownload = true;
+            checkBuildNO() })
 
         mFabRepostButton.setOnClickListener({ shareIntent(true) })
         mFabShareButton.setOnClickListener({ shareIntent(false) })
@@ -359,16 +365,10 @@ class DownloadingFragment : Fragment() {
         rootCardView.visibility=View.INVISIBLE
         if (!ClipBrodHelper(activity).clipBrodText.isNullOrEmpty()) {
             try {
-                if (mPost != null) {
-                    if (ClipBrodHelper(activity).clipBrodText.equals(mPost.url)) {
-                        Toast.makeText(activity, "Post Already downloaded ", Toast.LENGTH_SHORT).show()
-                    } else {
                         mEditTextInputURl.text.clear()
                         mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
                         hideKeybord()
 
-                    }
-                }
             } catch (Ex: Exception) {
             }
         } else {
@@ -402,7 +402,7 @@ class DownloadingFragment : Fragment() {
 
     fun checkBuildNO() {
 
-        postUrl=mEditTextInputURl.text.toString()
+
         if (Build.VERSION.SDK_INT > 22) {
             if (activity!!.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
                 askPermistion()
@@ -492,6 +492,7 @@ class DownloadingFragment : Fragment() {
             mCardView.visibility = View.INVISIBLE
             btPlayVideo.visibility = View.INVISIBLE
             hideKeybord()
+            Crashlytics.log("connecting to $postUrl")
 
 
         }
@@ -546,11 +547,7 @@ class DownloadingFragment : Fragment() {
             } catch (ex: Exception) {
                 ex.printStackTrace()
 
-                activity?.runOnUiThread({
-                    Toast.makeText(activity, "Please try again later and check your intent connection  Error code 111  ", Toast.LENGTH_SHORT).show()
-                    isSomeThingWrong = true
-                    Crashlytics.recordException(ex);
-                })
+                isSomeThingWrong = true
 
             }
             return "";
@@ -566,11 +563,8 @@ class DownloadingFragment : Fragment() {
             } else {
                 mProgressBar.visibility = View.INVISIBLE
                try{
-                   Snackbar.make(rootCardView, "unable to get downloading url", Snackbar.LENGTH_INDEFINITE).setAction("try again") {
-                       if (!mEditTextInputURl.text.toString().isEmpty()) {
-                           grabData(mEditTextInputURl.text.toString()).execute()
-                       }
-                   }.show()
+                   showError()
+
                }catch (E:Exception){
 
                }
@@ -670,6 +664,19 @@ class DownloadingFragment : Fragment() {
                 .show()
     }
 
+    private fun showError(){
+        if (isAdded && activity!=null){
+            AlertDialog.Builder(activity!!)
+                    .setTitle("Error try again")
+                    .setPositiveButton("try again",DialogInterface.OnClickListener { dialogInterface, i ->
+                        if (!mEditTextInputURl.text.toString().isEmpty()) {
+                            grabData(mEditTextInputURl.text.toString()).execute()
+                        }
+                    }).create()
+                    .show()
+
+        }
+    }
 
 
     private fun showRateMe() {

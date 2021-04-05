@@ -9,8 +9,8 @@ android {
         applicationId "com.ameerhamza6733.directmessagesaveandrepost"
         minSdkVersion 17
         targetSdkVersion 30
-        versionCode 39
-        versionName "1.0.39"
+        versionCode 40
+        versionName "1.0.40"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
@@ -53,7 +53,7 @@ dependencies {
     //noinspection GradleCompatible
     implementation 'com.google.firebase:firebase-ads:19.8.0'
 
-    implementation 'com.webianks.library:easy-feedback:1.0.2'
+
     implementation 'com.github.clans:fab:1.6.4'
     implementation 'com.android.volley:volley:1.1.1'
     implementation 'com.google.android.ads.consent:consent-library:1.0.8'
