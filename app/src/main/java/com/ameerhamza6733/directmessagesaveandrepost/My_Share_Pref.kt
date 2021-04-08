@@ -47,7 +47,7 @@ class My_Share_Pref {
 
         fun SaveAtoStart(context: Context,boolean: Boolean):Boolean {
             val sharePref = context.applicationContext.getSharedPreferences(APP_DATA_FILE, 0)
-            return sharePref.edit().putBoolean(IS_FIRST_TIME,boolean).commit()
+            return sharePref.edit().putBoolean(ATO_SAVE,boolean).commit()
 
         }
 

@@ -245,12 +245,16 @@ class DownloadingFragment : Fragment() {
         copyDataFromClipBrod()
         laodNativeAd()
     }
+
+
     private fun laodNativeAd(){
+
         val adLoader: AdLoader = AdLoader.Builder(requireActivity(), getString(R.string.native_ad_real_id)).forUnifiedNativeAd { nativeAd->
-
-            val styles = NativeTemplateStyle.Builder().withMainBackgroundColor(ColorDrawable(ContextCompat.getColor(requireActivity(), R.color.cardview_light_background))).build()
-
+           try{
+               Crashlytics.log("onUnifiedNativeAdLoaded")
+           }catch (E:Exception){}
             if (isAdded && activity!=null){
+                val styles = NativeTemplateStyle.Builder().withMainBackgroundColor(ColorDrawable(ContextCompat.getColor(requireActivity(), R.color.cardview_light_background))).build()
                 nativeAdTempalte.setStyles(styles)
                 nativeAdTempalte.setNativeAd(nativeAd)
             }
@@ -334,7 +338,8 @@ class DownloadingFragment : Fragment() {
         mCheckAndSaveButton.setOnClickListener({
             postUrl=mEditTextInputURl.text.toString()
             manualyDownload = true;
-            checkBuildNO() })
+            checkBuildNO()
+        })
 
         mFabRepostButton.setOnClickListener({ shareIntent(true) })
         mFabShareButton.setOnClickListener({ shareIntent(false) })
@@ -362,21 +367,24 @@ class DownloadingFragment : Fragment() {
     }
 
     private fun copyDataFromClipBrod() {
+        try {
         rootCardView.visibility=View.INVISIBLE
         if (!ClipBrodHelper(activity).clipBrodText.isNullOrEmpty()) {
-            try {
+
                         mEditTextInputURl.text.clear()
                         mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
+                        postUrl=mEditTextInputURl.text.toString()
                         hideKeybord()
 
-            } catch (Ex: Exception) {
-            }
+
         } else {
             mEditTextInputURl.text.clear()
             Toast.makeText(activity, "URL not valid", Toast.LENGTH_SHORT).show()
             mCardView.visibility = View.INVISIBLE
             mProgressBar.visibility = View.INVISIBLE
         }
+             } catch (Ex: Exception) {
+            }
 
     }
 

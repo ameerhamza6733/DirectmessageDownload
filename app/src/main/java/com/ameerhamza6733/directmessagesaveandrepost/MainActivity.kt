@@ -246,12 +246,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             override fun onAdFailedToLoad(p0: Int) {
                 super.onAdFailedToLoad(p0)
+                Log.d(TAG,"interstitial not ad loaded")
                 progressBar.visibility=View.INVISIBLE
                 loadFragment()
             }
 
             override fun onAdLoaded() {
                 super.onAdLoaded()
+                Log.d(TAG,"interstitial ad loaded")
                 progressBar.visibility=View.INVISIBLE
                 loadFragment()
             }
@@ -259,7 +261,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
 
         mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this@MainActivity)
-        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
+        mRewardedVideoAd!!.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
 
 
     }

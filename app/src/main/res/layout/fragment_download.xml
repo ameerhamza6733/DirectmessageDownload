@@ -95,7 +95,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_below="@+id/imageView"
-
                     android:padding="16dp"
                     android:textColor="#0d47a1" />
 
