@@ -564,18 +564,20 @@ class DownloadingFragment : Fragment() {
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
 
-            if (!isSomeThingWrong) {
+          if (isAdded && activity!=null){
+                if (!isSomeThingWrong) {
 
-                UpdateUI()
-                Downloader()
-            } else {
-                mProgressBar.visibility = View.INVISIBLE
-               try{
-                   showError()
+                    UpdateUI()
+                    Downloader()
+                } else {
+                    mProgressBar.visibility = View.INVISIBLE
+                    try{
+                        showError()
 
-               }catch (E:Exception){
+                    }catch (E:Exception){
 
-               }
+                    }
+                }
             }
         }
     }
@@ -625,14 +627,20 @@ class DownloadingFragment : Fragment() {
         }
 
     fun getFileExtenstion(url: String): String {
-        return url.substring(url.lastIndexOf("."))
+      return if (mPost.medium=="image"){
+            ".jpg"
+       }else{
+           ".mp4"
+       }
     }
     fun getRootDirPath(): String? {
-        return if (Environment.MEDIA_MOUNTED == Environment.getExternalStorageState()) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+           context?.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.absolutePath
+        }else{
             Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_DOWNLOADS).absolutePath
-        } else
-            null
+        }
+
     }
 
 
@@ -687,22 +695,6 @@ class DownloadingFragment : Fragment() {
     }
 
 
-    private fun showRateMe() {
-        val builder: AlertDialog.Builder
 
-        builder = AlertDialog.Builder(activity!!)
-        builder.setTitle("Rate Me")
-                .setMessage("Copy caption and tag need your help please rate us on google play")
-                .setPositiveButton("Please Rate Me") { dialog, which ->
-                    // continue with delete
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + activity?.packageName)))
-                }
-                .setNegativeButton("never") { dialog, which ->
-                    My_Share_Pref.saveRateMe(activity!!, false)
-
-                }
-                .setIcon(android.R.drawable.star_big_on)
-                .show()
-    }
 
 }

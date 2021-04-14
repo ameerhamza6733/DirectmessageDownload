@@ -32,6 +32,7 @@ public class InstaIntent {
                 Log.d("InstaIntent", "URi" + uri.toString());
             }
             share.putExtra(Intent.EXTRA_STREAM, uri);
+            share.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             if (repost) {
