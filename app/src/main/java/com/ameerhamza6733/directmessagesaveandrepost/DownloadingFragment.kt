@@ -44,6 +44,9 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.liulishuo.filedownloader.BaseDownloadTask
 import com.liulishuo.filedownloader.FileDownloadListener
 import com.liulishuo.filedownloader.FileDownloader
@@ -215,6 +218,7 @@ class DownloadingFragment : Fragment() {
     private lateinit var rootCardView: CardView
     private lateinit var btPlayVideo:AppCompatImageView
     private  var mNativeAd:NativeAd?=null
+    private lateinit var remoteConfig: FirebaseRemoteConfig
  //   private lateinit var nativeAdTempalte: TemplateView
     private var firebaseAnalytics:FirebaseAnalytics?=null
 
@@ -230,6 +234,7 @@ class DownloadingFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
        firebaseAnalytics=FirebaseAnalytics.getInstance(activity)
+        remoteConfig = Firebase.remoteConfig
         staupUI(view)
         rootView = view
         return view
@@ -254,7 +259,10 @@ class DownloadingFragment : Fragment() {
         setUpListerners()
         copyDataFromClipBrod()
         //laodNativeAd()
-        refreshAd()
+       if (remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NATIVE_ADS_DOWNLOADING_SCREEN)){
+           refreshAd()
+       }
+
     }
 
     override fun onDestroy() {
@@ -410,7 +418,9 @@ class DownloadingFragment : Fragment() {
             postUrl = mEditTextInputURl.text.toString()
             manualyDownload = true;
             checkBuildNO()
-            refreshAd()
+            if (remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NATIVE_ADS_DOWNLOADING_SCREEN)){
+                refreshAd()
+            }
         })
 
         mFabRepostButton.setOnClickListener({ shareIntent(true) })

@@ -5,5 +5,10 @@
         <key>non_personalized_ads</key>
         <value>false</value>
     </entry>
+    <entry>
+        <key>show_download_native_ad</key>
+        <value>false</value>
+    </entry>
+
 
 </defaultsMap>
