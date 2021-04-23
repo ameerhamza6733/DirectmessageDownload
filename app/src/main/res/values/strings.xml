@@ -16,4 +16,6 @@
     <string name="refresh">Refresh</string>
     <string name="login_error_loading_cookies">Error loading cookies</string>
     <string name="admob_app_id">ca-app-pub-5168564707064012~5058501866</string>
+
+    <string name="ad_attribution">Ad</string>
 </resources>

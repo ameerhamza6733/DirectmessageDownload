@@ -16,13 +16,22 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.FragmentManager
+import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants
 import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils
 import com.google.ads.consent.*
 import com.google.ads.mediation.admob.AdMobAdapter
 import com.google.android.gms.ads.*
-import com.google.android.gms.ads.reward.RewardedVideoAd
+import com.google.android.gms.ads.initialization.InitializationStatus
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.material.navigation.NavigationView
-
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
@@ -30,18 +39,53 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
+    private var rewardVideoAdCallback=object: FullScreenContentCallback() {
+        override fun onAdDismissedFullScreenContent() {
+            mRewardedVideoAd = null
+        }
+
+        override fun onAdFailedToShowFullScreenContent(adError: AdError?) {
+
+        }
+
+        override fun onAdShowedFullScreenContent() {
+
+            mRewardedVideoAd = null
+        }
+    }
+
     private var fragmentManager: FragmentManager? = null
     private var TAG = "MainActivityTAG";
     private var mContext: Context? = null
+    private var deviceTestId="84B80A634F2B75467E10A4579885F9C7"
     private lateinit var progressBar: ProgressBar
+    private lateinit var remoteConfig: FirebaseRemoteConfig
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        val admonConfig=RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("84B80A634F2B75467E10A4579885F9C7"))
+        val admonConfig= RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList(deviceTestId))
         MobileAds.setRequestConfiguration(admonConfig.build());
-        MobileAds.initialize(this, getString(R.string.admob_app_id))
+        MobileAds.initialize(this, object : OnInitializationCompleteListener {
+            override fun onInitializationComplete(p0: InitializationStatus?) {
+
+            }
+
+        })
+        MobileAds.setAppVolume(0.5f);
+
+        remoteConfig = Firebase.remoteConfig
+        if (BuildConfig.DEBUG){
+            val configSettings = remoteConfigSettings {
+                minimumFetchIntervalInSeconds = 3600
+            }
+            remoteConfig.setConfigSettingsAsync(configSettings)
+
+
+        }
+        remoteConfig.setDefaultsAsync(R.xml.remote_confi_defaults)
+        fetchRemoteConfigValues();
 
         mContext = this
 
@@ -54,9 +98,24 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
         progressBar=findViewById(R.id.progressBar2)
-        checkForConsentForAdmob()
+       // checkForConsentForAdmob()
 
     }
+    private fun fetchRemoteConfigValues() {
+       val nonPersonalizedAs = remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NON_PERSONALIZED_ADS)
+
+        // [START fetch_config_with_callback]
+        remoteConfig.fetchAndActivate()
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+
+                    }
+                    Log.d(TAG,"fetchSuccess")
+                    checkForConsentForAdmob()
+                }
+        // [END fetch_config_with_callback]
+    }
+
 
     private fun loadFragment() {
         fragmentManager = supportFragmentManager
@@ -107,11 +166,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             R.id.nav_logout -> {
                 CookieUtils.setupCookies("LOGOUT")
-                Toast.makeText(this,"Logout",Toast.LENGTH_LONG).show()
+                CookieUtils.settingsHelper.putString(Constants.COOKIE, "")
+                Toast.makeText(this, "Logout", Toast.LENGTH_LONG).show()
 
             }
             R.id.nav_action_settings -> {
                 startActivity(Intent(this@MainActivity, com.ameerhamza6733.directmessagesaveandrepost.Settings::class.java))
+            }
+            R.id.nav_send_feedback -> {
+                try {
+                    val emailIntent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"+"develpore2017@gmail.com"))
+                    emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Feedback about " + getString(R.string.app_name))
+                    emailIntent.putExtra(Intent.EXTRA_TEXT, "Write your feedback")
+//emailIntent.putExtra(Intent.EXTRA_HTML_TEXT, body); //If you are using HTML in your body text
+
+//emailIntent.putExtra(Intent.EXTRA_HTML_TEXT, body); //If you are using HTML in your body text
+                    startActivity(Intent.createChooser(emailIntent, "Email with"))
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
             }
         }
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
@@ -123,14 +196,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
 
     public fun checkForConsentForAdmob() {
-        checkForConsent()
+        val nonPersonalizedAs = remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NON_PERSONALIZED_ADS)
+
+       if (nonPersonalizedAs){
+           val adRequest = AdRequest.Builder()
+                   .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
+                   .build()
+           ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.NON_PERSONALIZED
+
+           loadAds(adRequest)
+       }else{
+           checkForConsent()
+       }
     }
 
     private var form: ConsentForm? = null
     private fun checkForConsent() {
         if (mContext == null)
             return
-        ConsentInformation.getInstance(mContext).addTestDevice("84B80A634F2B75467E10A4579885F9C7")
+
+        ConsentInformation.getInstance(mContext).addTestDevice(deviceTestId)
         val consentInformation = ConsentInformation.getInstance(mContext)
 
         val publisherIds = arrayOf("pub-5168564707064012")
@@ -140,11 +225,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 when (consentStatus) {
                     ConsentStatus.PERSONALIZED -> {
                         Log.d(TAG, "Showing Personalized ads")
-                        showPersonalizedAds()
+                        ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.PERSONALIZED
+
+                        val adRequest = AdRequest.Builder()
+                                .build()
+                        loadAds(adRequest)
                     }
                     ConsentStatus.NON_PERSONALIZED -> {
                         Log.d(TAG, "Showing Non-Personalized ads")
-                        showNonPersonalizedAds()
+                        val adRequest = AdRequest.Builder()
+                                .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
+                                .build()
+                        ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.NON_PERSONALIZED
+
+                        loadAds(adRequest)
                     }
                     ConsentStatus.UNKNOWN -> {
                         Log.d(TAG, "Requesting Consent")
@@ -152,7 +246,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                         .isRequestLocationInEeaOrUnknown) {
                             requestConsent()
                         } else {
-                            showPersonalizedAds()
+                            ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.PERSONALIZED
+
+                            val adRequest = AdRequest.Builder()
+
+                                    .build()
+                            loadAds(adRequest)
                         }
                     }
                     else -> {
@@ -203,9 +302,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         } else {
                             Log.d(TAG, "Requesting Consent: Requesting consent again")
                             when (consentStatus) {
-                                ConsentStatus.PERSONALIZED -> showPersonalizedAds()
-                                ConsentStatus.NON_PERSONALIZED -> showNonPersonalizedAds()
-                                ConsentStatus.UNKNOWN -> showNonPersonalizedAds()
+                                ConsentStatus.PERSONALIZED -> {
+                                    ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.PERSONALIZED
+                                    val adRequest = AdRequest.Builder()
+                                            .build()
+                                    loadAds(adRequest)
+                                }
+                                ConsentStatus.NON_PERSONALIZED -> {
+                                    ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.NON_PERSONALIZED
+
+                                    val adRequest = AdRequest.Builder()
+                                            .build()
+                                    loadAds(adRequest)
+                                }
+                                ConsentStatus.UNKNOWN -> {
+                                    ConsentInformation.getInstance(applicationContext).consentStatus = ConsentStatus.UNKNOWN
+                                    val adRequest = AdRequest.Builder()
+                                            .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
+                                            .build()
+                                    loadAds(adRequest)
+                                }
                             }
 
                         }
@@ -224,88 +340,49 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         form?.load()
     }
 
-    private fun showPersonalizedAds() {
-        if (mContext == null)
-            return
-        ConsentInformation.getInstance(this@MainActivity).consentStatus = ConsentStatus.PERSONALIZED
 
-        mInterstitialAd = InterstitialAd(this@MainActivity)
-        mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-
-
-
-        val adRequest = AdRequest.Builder()
-                .build()
-
-        mInterstitialAd?.loadAd(adRequest)
-        mInterstitialAd?.adListener = object : AdListener() {
-            override fun onAdClosed() {
-                // Load the next interstitial.
-                mInterstitialAd?.loadAd(adRequest)
-            }
-
-            override fun onAdFailedToLoad(p0: Int) {
-                super.onAdFailedToLoad(p0)
-                Log.d(TAG,"interstitial not ad loaded")
-                progressBar.visibility=View.INVISIBLE
-                loadFragment()
-            }
-
-            override fun onAdLoaded() {
-                super.onAdLoaded()
-                Log.d(TAG,"interstitial ad loaded")
-                progressBar.visibility=View.INVISIBLE
-                loadFragment()
-            }
-        }
-
-
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this@MainActivity)
-        mRewardedVideoAd!!.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
-
-
-    }
 
     private var mInterstitialAd: InterstitialAd? = null
-    private var mRewardedVideoAd: RewardedVideoAd? = null
+    private var mRewardedVideoAd: RewardedAd? = null
 
-    private fun showNonPersonalizedAds() {
+    private fun loadAds(adRequest: AdRequest) {
         if (mContext == null)
             return
-        ConsentInformation.getInstance(this@MainActivity).consentStatus = ConsentStatus.NON_PERSONALIZED
 
-
-        val adRequest = AdRequest.Builder()
-                .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
-                .build()
-
-
-        mInterstitialAd = InterstitialAd(this@MainActivity)
-        mInterstitialAd?.adUnitId = "ca-app-pub-5168564707064012/6509811189"
-
-        mInterstitialAd?.loadAd(adRequest)
-        mInterstitialAd?.adListener = object : AdListener() {
-            override fun onAdClosed() {
-                // Load the next interstitial.
-                mInterstitialAd?.loadAd(adRequest)
-            }
-
-            override fun onAdFailedToLoad(p0: Int) {
+        InterstitialAd.load(this@MainActivity, "ca-app-pub-5168564707064012/6509811189", adRequest, object : InterstitialAdLoadCallback() {
+            override fun onAdFailedToLoad(p0: LoadAdError) {
                 super.onAdFailedToLoad(p0)
-                progressBar.visibility=View.INVISIBLE
+                Log.d(TAG, "interstitial not ad loaded $p0")
+                progressBar.visibility = View.INVISIBLE
                 loadFragment()
             }
 
-            override fun onAdLoaded() {
-                super.onAdLoaded()
-                progressBar.visibility=View.INVISIBLE
+            override fun onAdLoaded(p0: InterstitialAd) {
+                super.onAdLoaded(p0)
+                mInterstitialAd = p0
+                Log.d(TAG, "interstitial ad loaded")
+                progressBar.visibility = View.INVISIBLE
                 loadFragment()
             }
-        }
 
+        })
 
-        mRewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this@MainActivity)
-        mRewardedVideoAd?.loadAd("ca-app-pub-5168564707064012/5568743535", adRequest)
+        RewardedAd.load(this, "ca-app-pub-5168564707064012/5568743535", adRequest, object : RewardedAdLoadCallback() {
+            override fun onAdFailedToLoad(adError: LoadAdError) {
+                progressBar?.visibility = View.GONE
+
+                mRewardedVideoAd = null
+            }
+
+            override fun onAdLoaded(rewardedAd: RewardedAd) {
+                Log.d(TAG, "video ad load with ad metadata ${rewardedAd.adMetadata}")
+                if (!rewardedAd.adMetadata.isEmpty) {
+                    mRewardedVideoAd = rewardedAd
+                    mRewardedVideoAd?.fullScreenContentCallback = rewardVideoAdCallback
+                }
+            }
+        })
+
     }
 
     fun getNonPersonalizedAdsBundle(): Bundle {
@@ -331,11 +408,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     public fun showAds() {
         Log.d(TAG, "showing ads");
-        if (mRewardedVideoAd != null && mRewardedVideoAd?.isLoaded!!) {
-            mRewardedVideoAd?.show()
-        } else if (mInterstitialAd != null && mInterstitialAd?.isLoaded!!) {
-            mInterstitialAd?.show()
-        }
+       try {
+           if (mRewardedVideoAd != null) {
+               mRewardedVideoAd?.show(this) {
+                   mRewardedVideoAd = null
+               }
+
+           } else if (mInterstitialAd != null) {
+               mInterstitialAd?.show(this)
+
+           }
+       }catch (E: Exception){
+           E.printStackTrace()
+       }
     }
 
     private fun openMarket(PackageName: String) {

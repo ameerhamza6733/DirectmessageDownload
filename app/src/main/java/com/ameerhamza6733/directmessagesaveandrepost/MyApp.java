@@ -30,7 +30,9 @@ public class MyApp extends Application {
             settingsHelper = new SettingsHelper(this);
         }
         String cookie = settingsHelper.getString(Constants.COOKIE);
-        CookieUtils.setupCookies(cookie);
+        if (!TextUtils.isEmpty(cookie)){
+            CookieUtils.setupCookies(cookie);
+        }
         if (TextUtils.isEmpty(settingsHelper.getString(Constants.DEVICE_UUID))) {
             settingsHelper.putString(Constants.DEVICE_UUID, UUID.randomUUID().toString());
         }

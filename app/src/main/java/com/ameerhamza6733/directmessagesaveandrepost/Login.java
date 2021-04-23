@@ -13,10 +13,13 @@ import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.CompoundButton;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -25,6 +28,7 @@ import androidx.appcompat.widget.AppCompatButton;
 
 import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants;
 import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 
 public final class Login extends AppCompatActivity implements  CompoundButton.OnCheckedChangeListener {
@@ -32,23 +36,40 @@ public final class Login extends AppCompatActivity implements  CompoundButton.On
     private String webViewUrl, defaultUserAgent;
 
     private WebView webView;
+    private TextView tvLoadUrl;
+    private ProgressBar progressBar;
     private boolean ready = false;
+    private FirebaseAnalytics firebaseAnalytics=FirebaseAnalytics.getInstance(this);
+    private Bundle bundle=new Bundle();
     private final WebViewClient webViewClient = new WebViewClient() {
         @Override
         public void onPageStarted(final WebView view, final String url, final Bitmap favicon) {
+
             webViewUrl = url;
+            tvLoadUrl.setText(url);
+            progressBar.setVisibility(View.VISIBLE);
+            bundle.putString("url",url);
+            firebaseAnalytics.logEvent("onPageStarted",bundle);
         }
+
+
 
         @Override
         public void onPageFinished(final WebView view, final String url) {
             webViewUrl = url;
+            progressBar.setVisibility(View.INVISIBLE);
+
+            firebaseAnalytics.logEvent("onPageFinished",bundle);
             final String mainCookie = CookieUtils.getCookie(url);
             if (TextUtils.isEmpty(mainCookie) || !mainCookie.contains("; ds_user_id=")) {
                 ready = true;
                 return;
             }
             if (mainCookie.contains("; ds_user_id=") && ready) {
+                firebaseAnalytics.logEvent("cookieGotIt",bundle);
                 returnCookieResult(mainCookie);
+            }else {
+                firebaseAnalytics.logEvent("failToGetCookie",bundle);
             }
         }
     };
@@ -68,13 +89,22 @@ public final class Login extends AppCompatActivity implements  CompoundButton.On
 
         setContentView(R.layout.activity_login);
 
-        webView=findViewById(R.id.webView);
+        webView=findViewById(R.id.webview);
+        tvLoadUrl=findViewById(R.id.tvUrl);
+        progressBar=findViewById(R.id.progress_bar);
         initWebView();
 
 
     }
 
-
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 
     @Override
     public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
@@ -90,7 +120,9 @@ public final class Login extends AppCompatActivity implements  CompoundButton.On
         webSettings.setSupportZoom(isChecked);
         webSettings.setBuiltInZoomControls(isChecked);
 
-        webView.loadUrl("https://instagram.com/");
+        webView.loadUrl("https://www.instagram.com/accounts/login/");
+        tvLoadUrl.setText("https://www.instagram.com/accounts/login/");
+
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -98,6 +130,7 @@ public final class Login extends AppCompatActivity implements  CompoundButton.On
 
             webView.setWebChromeClient(webChromeClient);
             webView.setWebViewClient(webViewClient);
+
             final WebSettings webSettings = webView.getSettings();
             if (webSettings != null) {
                 if (defaultUserAgent == null) defaultUserAgent = webSettings.getUserAgentString();
@@ -127,7 +160,8 @@ public final class Login extends AppCompatActivity implements  CompoundButton.On
                 cookieSyncMngr.stopSync();
                 cookieSyncMngr.sync();
             }
-            webView.loadUrl("https://instagram.com/");
+            webView.loadUrl("https://www.instagram.com/accounts/login/");
+        tvLoadUrl.setText("https://www.instagram.com/accounts/login/");
 
     }
 

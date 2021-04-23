@@ -1,18 +1,29 @@
 package com.ameerhamza6733.directmessagesaveandrepost;
 
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.google.android.gms.ads.AdListener;
+import com.google.ads.consent.ConsentInformation;
+import com.google.ads.consent.ConsentStatus;
+import com.google.ads.mediation.admob.AdMobAdapter;
+import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.InterstitialAd;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +43,32 @@ public class HistoryFragment extends Fragment {
     protected HistoryAdapter mAdapter;
     protected RecyclerView.LayoutManager mLayoutManager;
     protected List<Post> mDataset;
-    private static InterstitialAd mInterstitialAd=null;
+    private InterstitialAd mInterstitialAd;
+    private FullScreenContentCallback mIterstitialFUllScreenCallback=new FullScreenContentCallback(){
+        @Override
+        public void onAdDismissedFullScreenContent() {
+            // Called when fullscreen content is dismissed.
+            Log.d("TAG", "The ad was dismissed.");
+        }
+
+        @Override
+        public void onAdFailedToShowFullScreenContent(AdError adError) {
+            // Called when fullscreen content failed to show.
+            Log.d("TAG", "The ad failed to show.");
+        }
+
+        @Override
+        public void onAdShowedFullScreenContent() {
+            // Called when fullscreen content is shown.
+            // Make sure to set your reference to null so you don't
+            // show it a second time.
+            mInterstitialAd = null;
+            Log.d("TAG", "The ad was shown.");
+        }
+    };
+
+    private static final String interstitialAdId="ca-app-pub-5168564707064012/3666631165";
+
 
     public static HistoryFragment newInstance(int someInt) {
         return new HistoryFragment();
@@ -74,22 +110,38 @@ public class HistoryFragment extends Fragment {
         // END_INCLUDE(initializeRecyclerView)
 
         initDataset();
-        loadIntiAdd();
+        ConsentStatus consentStatus=ConsentInformation.getInstance(getActivity().getApplicationContext()).getConsentStatus();
+       AdRequest adRequest;
+        if (consentStatus ==ConsentStatus.PERSONALIZED ){
+            adRequest = new AdRequest.Builder().build();
+
+        }else {
+            adRequest = new AdRequest.Builder().addNetworkExtrasBundle(AdMobAdapter.class,getNonPersonalizedAdsBundle()).build();
+
+        }
+        loadIntiAdd(adRequest);
         return rootView;
     }
 
-    private void loadIntiAdd() {
+    private void loadIntiAdd(AdRequest adRequest) {
 
-          mInterstitialAd = new InterstitialAd(getActivity());
-        mInterstitialAd.setAdUnitId("ca-app-pub-5168564707064012/3666631165");
-        mInterstitialAd.loadAd(new AdRequest.Builder().addTestDevice("B94C1B8999D3B59117198A259685D4F8").build());
-        mInterstitialAd.setAdListener(new AdListener() {
-            @Override
-            public void onAdLoaded() {
-                super.onAdLoaded();
+        InterstitialAd.load(getActivity(), interstitialAdId,
+                adRequest, new InterstitialAdLoadCallback(){
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        // Handle the error.
+                        Log.d(TAG, loadAdError.getMessage());
+                        mInterstitialAd = null;
+                    }
 
-            }
-        });
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        mInterstitialAd = interstitialAd;
+                        Log.d(TAG, "onAdFailedToLoad");
+                        mInterstitialAd.setFullScreenContentCallback(mIterstitialFUllScreenCallback);
+                    }
+                });
+
 
     }
 
@@ -140,13 +192,26 @@ public class HistoryFragment extends Fragment {
      */
     private void initDataset()  {
       ArrayList<Post> list=  My_Share_Pref.Companion.getAllPost(getActivity());
-        mAdapter = new HistoryAdapter(list);
+        mAdapter = new HistoryAdapter(list,this);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mRecyclerView.setAdapter(mAdapter);
 
     }
 
+    public void showAds(){
+        if (mInterstitialAd != null && getActivity()!=null) {
+            mInterstitialAd.show(getActivity());
+        } else {
+            Log.d("TAG", "The interstitial ad wasn't ready yet.");
+        }
+    }
 
+    private Bundle getNonPersonalizedAdsBundle() {
+        Bundle extras = new Bundle();
+        extras.putString("npa", "1");
+
+        return extras;
+    }
 
     private enum LayoutManagerType {
         GRID_LAYOUT_MANAGER,

@@ -27,6 +27,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
     private static final String TAG = "HistoryAdapter";
 
     private List<Post> mDataSet;
+    private HistoryFragment historyFragment;
 
 // BEGIN_INCLUDE(recyclerViewSampleViewHolder)
 
@@ -35,8 +36,9 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
      *
      * @param dataSet String[] containing the data to populate views to be used by RecyclerView.
      */
-    public HistoryAdapter(List<Post> dataSet) {
+    public HistoryAdapter(List<Post> dataSet,HistoryFragment historyFragment) {
         mDataSet = dataSet;
+        historyFragment=historyFragment;
     }
     // END_INCLUDE(recyclerViewSampleViewHolder)
 
@@ -69,7 +71,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
                 // if(mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString()!=null && !mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString().isEmpty()){
                 try {
                     new ClipBrodHelper().WriteToClipBord(view.getContext(), mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString());
-
+                    historyFragment.showAds();
                 } catch (NullPointerException n) {
                     Toast.makeText(view.getContext(), "NO Hash tag found for this Post", Toast.LENGTH_SHORT).show();
                 } catch (Exception ex) {
@@ -87,6 +89,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
                     new InstaIntent().createVideoInstagramIntent("image/*", mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(), view.getContext(), false);
 
                 }
+                historyFragment.showAds();
             }
         });
         viewHolder.getRepostButton().setOnClickListener(new View.OnClickListener() {
@@ -99,6 +102,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
                     new InstaIntent().createVideoInstagramIntent("image/*", mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(), view.getContext(), true);
 
                 }
+                historyFragment.showAds();
             }
         });
         viewHolder.getFabDelete().setOnClickListener(new View.OnClickListener() {

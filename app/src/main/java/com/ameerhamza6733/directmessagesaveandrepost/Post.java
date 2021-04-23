@@ -13,12 +13,21 @@ public class Post {
     private String postID;
     private String pathToStorage;
     private String url;
+    private String type;
 
 
 
 
     public Post() {
 
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getPostID() {

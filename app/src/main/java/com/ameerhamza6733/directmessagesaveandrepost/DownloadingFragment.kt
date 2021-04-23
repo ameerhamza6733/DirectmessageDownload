@@ -8,14 +8,13 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.drawable.ColorDrawable
 import android.media.MediaScannerConnection
-import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,7 +23,6 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants
@@ -33,11 +31,18 @@ import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils
 import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils.settingsHelper
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.github.clans.fab.FloatingActionButton
-import com.google.android.ads.nativetemplates.NativeTemplateStyle
-import com.google.android.ads.nativetemplates.TemplateView
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
-import com.google.android.material.snackbar.Snackbar
+import com.google.ads.consent.ConsentInformation
+import com.google.ads.consent.ConsentStatus
+import com.google.ads.mediation.admob.AdMobAdapter
+import com.google.android.gms.ads.*
+import com.google.android.gms.ads.VideoController.VideoLifecycleCallbacks
+import com.google.android.gms.ads.nativead.MediaView
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAd.OnNativeAdLoadedListener
+import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.google.android.gms.ads.nativead.NativeAdView
+import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.liulishuo.filedownloader.BaseDownloadTask
 import com.liulishuo.filedownloader.FileDownloadListener
@@ -47,9 +52,9 @@ import lolodev.permissionswrapper.callback.OnRequestPermissionsCallBack
 import lolodev.permissionswrapper.wrapper.PermissionWrapper
 import org.json.JSONException
 import org.json.JSONObject
+import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.parser.Parser
 import org.jsoup.select.Elements
 import java.io.File
 import java.util.*
@@ -86,6 +91,7 @@ class DownloadingFragment : Fragment() {
         override fun pending(task: BaseDownloadTask, soFarBytes: Int, totalBytes: Int) {}
 
         override fun started(task: BaseDownloadTask?) {
+            firebaseAnalytics?.logEvent("downloadingStarted", null);
             Toast.makeText(numberProgressBar.context, "Please wait", Toast.LENGTH_SHORT).show()
             numberProgressBar.max = 100
             numberProgressBar.progress = 0
@@ -107,6 +113,7 @@ class DownloadingFragment : Fragment() {
 
             activity?.let {
                 it.runOnUiThread {
+                    firebaseAnalytics?.logEvent("downloadingCompleted", null);
                     numberProgressBar.progress = 100
                     Toast.makeText(activity, "Downloading complete", Toast.LENGTH_SHORT).show()
                     numberProgressBar.progress = 100
@@ -115,9 +122,9 @@ class DownloadingFragment : Fragment() {
                     mFabRepostButton.visibility = View.VISIBLE
                     mFabShareButton.visibility = View.VISIBLE
 
-                    if(mPost.medium!="image") btPlayVideo.visibility=View.VISIBLE
+                    if(mPost?.medium!="image") btPlayVideo.visibility=View.VISIBLE
 
-                    mPost.pathToStorage = task.path
+                    mPost?.pathToStorage = task.path
                     this@DownloadingFragment.task=task
 
                     activity?.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, FileProvider.getUriForFile(it,
@@ -129,7 +136,7 @@ class DownloadingFragment : Fragment() {
                         Log.i("ExternalStorage", "Scanned $path:")
                         Log.i("ExternalStorage", "-> uri=$uri")
                     }
-                    saveToPraf(mPost)
+                    mPost?.let { it1 -> saveToPraf(it1) }
                     Crashlytics.log("OnDownloadCompleted")
                 }
             }
@@ -139,7 +146,7 @@ class DownloadingFragment : Fragment() {
         override fun paused(task: BaseDownloadTask, soFarBytes: Int, totalBytes: Int) {}
 
         override fun error(task: BaseDownloadTask, e: Throwable) {
-
+            firebaseAnalytics?.logEvent("downloadingError", null);
             if (activity!=null && isAdded){
                 Toast.makeText(activity, "Error: Please try again with different post", Toast.LENGTH_LONG).show()
             }
@@ -154,7 +161,7 @@ class DownloadingFragment : Fragment() {
         try {
             if (numberProgressBar.progress == 100) {
 
-                if (mPost.medium.equals("image"))
+                if (mPost?.medium.equals("image"))
                     shareImageIntentToInstagram(repost)
                 else
                     shareVideoIntentToInstagram(repost)
@@ -180,7 +187,7 @@ class DownloadingFragment : Fragment() {
     private fun shareImageIntentToInstagram(repost: Boolean) {
         try {
 
-            InstaIntent().createVideoInstagramIntent("image/*", mPost.pathToStorage, activity, repost);
+            InstaIntent().createVideoInstagramIntent("image/*", mPost?.pathToStorage, activity, repost);
         } catch (e: Exception) {
             Crashlytics.recordException(e);
             //  FirebaseCrash.report(Exception("private fun shareImageIntentToInstagram Error code 4 Error : " + e.message))
@@ -203,14 +210,17 @@ class DownloadingFragment : Fragment() {
     private lateinit var mFabShareButton: FloatingActionButton
     private lateinit var mCardView: CardView
     private lateinit var mProgressBar: ProgressBar
+    private lateinit var mAdPlaceHolder:FrameLayout
     private lateinit var rootView: View;
     private lateinit var rootCardView: CardView
     private lateinit var btPlayVideo:AppCompatImageView
-    private lateinit var nativeAdTempalte: TemplateView
+    private  var mNativeAd:NativeAd?=null
+ //   private lateinit var nativeAdTempalte: TemplateView
+    private var firebaseAnalytics:FirebaseAnalytics?=null
 
     private var task: BaseDownloadTask?=null
     private lateinit var mBitMapImageToShare: Bitmap
-    private lateinit var mPost:Post
+    private  var mPost:Post?=null
     lateinit var postKeyFromShardPraf: String
 
     private var manualyDownload = false
@@ -219,7 +229,7 @@ class DownloadingFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
-
+       firebaseAnalytics=FirebaseAnalytics.getInstance(activity)
         staupUI(view)
         rootView = view
         return view
@@ -243,29 +253,77 @@ class DownloadingFragment : Fragment() {
 
         setUpListerners()
         copyDataFromClipBrod()
-        laodNativeAd()
+        //laodNativeAd()
+        refreshAd()
+    }
+
+    override fun onDestroy() {
+        mNativeAd?.destroy()
+        super.onDestroy()
     }
 
 
-    private fun laodNativeAd(){
+    private fun refreshAd() {
 
-        val adLoader: AdLoader = AdLoader.Builder(requireActivity(), getString(R.string.native_ad_real_id)).forUnifiedNativeAd { nativeAd->
-           try{
-               Crashlytics.log("onUnifiedNativeAdLoaded")
-           }catch (E:Exception){}
-            if (isAdded && activity!=null){
-                val styles = NativeTemplateStyle.Builder().withMainBackgroundColor(ColorDrawable(ContextCompat.getColor(requireActivity(), R.color.cardview_light_background))).build()
-                nativeAdTempalte.setStyles(styles)
-                nativeAdTempalte.setNativeAd(nativeAd)
-            }
+        val builder = AdLoader.Builder(activity, getString(R.string.native_ad_real_id))
+        builder.forNativeAd(
+                OnNativeAdLoadedListener { nativeAd ->
+                    // OnLoadedListener implementation.
+                    // If this callback occurs after the activity is destroyed, you must call
+                    // destroy and return or you may get a memory leak.
+                    var isDestroyed = false
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                        isDestroyed = activity?.isDestroyed == true
+                    }
+                    if (isDestroyed && activity?.isFinishing==true) {
+                        nativeAd.destroy()
+                        return@OnNativeAdLoadedListener
+                    }else{
+                        mNativeAd?.destroy()
+
+                        mNativeAd = nativeAd
+
+                        val adView = layoutInflater.inflate(R.layout.native_ad, null) as NativeAdView
+                        populateNativeAdView(nativeAd, adView)
+                        mAdPlaceHolder.removeAllViews()
+                        mAdPlaceHolder.addView(adView)
+                    }
+                    // You must call destroy on old ads when you are done with them,
+                    // otherwise you will have a memory leak.
+
+
+                })
+        val videoOptions = VideoOptions.Builder().build()
+        val adOptions: NativeAdOptions = NativeAdOptions.Builder().setVideoOptions(videoOptions).build()
+        builder.withNativeAdOptions(adOptions)
+        val adLoader = builder
+                .withAdListener(
+                        object : AdListener() {
+                            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+
+                                val error = String.format(
+                                        "domain: %s, code: %d, message: %s",
+                                        loadAdError.domain,
+                                        loadAdError.code,
+                                        loadAdError.message)
+
+                            }
+                        })
+                .build()
+        val adRequest = if (  ConsentInformation.getInstance(activity!!.applicationContext).consentStatus==ConsentStatus.PERSONALIZED){
+           AdRequest.Builder()
+
+                    .build()
+        }else{
+             AdRequest.Builder()
+                    .addNetworkExtrasBundle(AdMobAdapter::class.java, getNonPersonalizedAdsBundle())
+                    .build()
         }
-                .build()
-
-
-        val adRequest = AdRequest.Builder()
-                .build()
         adLoader.loadAd(adRequest)
+
     }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -274,6 +332,7 @@ class DownloadingFragment : Fragment() {
            val cookie = data!!.getStringExtra("cookie")
            CookieUtils.setupCookies(cookie)
            settingsHelper.putString(Constants.COOKIE, cookie)
+           firebaseAnalytics?.logEvent("cookieStored", null)
            // No use as the timing of show is unreliable
            // Toast.makeText(getContext(), R.string.login_success_loading_cookies, Toast.LENGTH_SHORT).show();
 
@@ -291,44 +350,56 @@ class DownloadingFragment : Fragment() {
 
 
     private fun copyHashTagToClipBord() {
-        var mainActivity = activity as MainActivity
-        if (mainActivity != null)
-            mainActivity.showAds()
-        if (!mHashTagTextView.text.isEmpty()) {
-            val clipbordHelper = ClipBrodHelper()
-            clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
-        } else {
-            Toast.makeText(activity, "No Hash tag not find in this Post", Toast.LENGTH_SHORT).show()
-        }
 
+
+        activity?.let { activity->
+            if (!mHashTagTextView.text.isEmpty()) {
+                val clipbordHelper = ClipBrodHelper()
+                clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
+            } else {
+                Toast.makeText(activity, "No Hash tag not find in this Post", Toast.LENGTH_SHORT).show()
+            }
+
+            if (activity is MainActivity){
+                activity.showAds()
+            }
+        }
     }
 
     private fun CopyBoth() {
-        var mainActivity = activity as MainActivity
-        if (mainActivity != null)
-            mainActivity.showAds()
-        var hashTagAndCaption = "";
-        if (!mHashTagTextView.text.isEmpty()) {
-            hashTagAndCaption = mHashTagTextView.text.toString();
+
+
+
+        activity?.let { activity->
+            var hashTagAndCaption = "";
+            if (!mHashTagTextView.text.isEmpty()) {
+                hashTagAndCaption = mHashTagTextView.text.toString();
+            }
+            if (!mCaptionTextView.text.isEmpty()) {
+                hashTagAndCaption += mCaptionTextView.text.toString()
+            }
+            val clipbordHelper = ClipBrodHelper()
+            clipbordHelper.WriteToClipBord(activity!!.applicationContext, hashTagAndCaption)
+            if (activity is MainActivity){
+                activity.showAds()
+            }
         }
-        if (!mCaptionTextView.text.isEmpty()) {
-            hashTagAndCaption += mCaptionTextView.text.toString()
-        }
-        val clipbordHelper = ClipBrodHelper()
-        clipbordHelper.WriteToClipBord(activity!!.applicationContext, hashTagAndCaption)
     }
 
     private fun copyCaptionToClipBord() {
-        var mainActivity = activity as MainActivity
-        if (mainActivity != null)
-            mainActivity.showAds()
-        if (!mCaptionTextView.text.isEmpty()) {
 
-            val clipbordHelper = ClipBrodHelper()
-            clipbordHelper.WriteToClipBord(activity, mCaptionTextView.text.toString())
 
+        activity?.let { activity->
+            if (!mCaptionTextView.text.isEmpty()) {
+
+                val clipbordHelper = ClipBrodHelper()
+                clipbordHelper.WriteToClipBord(activity, mCaptionTextView.text.toString())
+
+            }
+            if (activity is MainActivity){
+                activity.showAds()
+            }
         }
-
 
     }
 
@@ -336,9 +407,10 @@ class DownloadingFragment : Fragment() {
 
     private fun setUpListerners() {
         mCheckAndSaveButton.setOnClickListener({
-            postUrl=mEditTextInputURl.text.toString()
+            postUrl = mEditTextInputURl.text.toString()
             manualyDownload = true;
             checkBuildNO()
+            refreshAd()
         })
 
         mFabRepostButton.setOnClickListener({ shareIntent(true) })
@@ -353,7 +425,7 @@ class DownloadingFragment : Fragment() {
 
 
             var internt = Intent(activity, PlayerActivity::class.java)
-            internt.putExtra(PlayerActivity.EXTRA_VIDEO_PATH, mPost.pathToStorage)
+            internt.putExtra(PlayerActivity.EXTRA_VIDEO_PATH, mPost?.pathToStorage)
         activity?.startActivity(internt)
 
     }
@@ -389,7 +461,7 @@ class DownloadingFragment : Fragment() {
     }
 
     fun staupUI(view: View) {
-        nativeAdTempalte=view.findViewById(R.id.my_template)
+       // nativeAdTempalte=view.findViewById(R.id.my_template)
         mEditTextInputURl = view.findViewById<EditText>(R.id.URL_Input_edit_text) as EditText
         mCheckAndSaveButton = view.findViewById<Button>(R.id.chack_and_save_post) as Button
         mImage = view.findViewById<ImageView>(R.id.imageView) as ImageView
@@ -403,6 +475,7 @@ class DownloadingFragment : Fragment() {
         mFabShareButton = view.findViewById<FloatingActionButton>(R.id.floatingActionButtonShare) as FloatingActionButton
         mCardView = view.findViewById<CardView>(R.id.cardView) as CardView
         mProgressBar = view.findViewById<ProgressBar>(R.id.progressBar) as ProgressBar
+        mAdPlaceHolder=view.findViewById(R.id.fl_adplaceholder)
         rootCardView=view.findViewById(R.id.cardView)
         btPlayVideo=view.findViewById(R.id.btPlay)
 
@@ -433,9 +506,14 @@ class DownloadingFragment : Fragment() {
     private fun intiDownloader() {
         if (atoSaveStartDownloading || manualyDownload) {
             rootCardView.visibility=View.VISIBLE
-            if (!postUrl.isEmpty()) {
-                grabData(postUrl).execute()
-
+            if (Patterns.WEB_URL.matcher(postUrl).matches()) {
+                if (isInstaPost(postUrl)){
+                    grabData(postUrl).execute()
+                }else{
+                    Toast.makeText(activity, "Please enter valid post url", Toast.LENGTH_LONG).show()
+                }
+            }else{
+                Toast.makeText(activity, "Enter valid url", Toast.LENGTH_LONG).show()
             }
 
         } else {
@@ -455,6 +533,7 @@ class DownloadingFragment : Fragment() {
         super.onDetach()
         mContext = null
         Crashlytics.log("onDetach");
+
     }
 
     private fun askPermistion() {
@@ -488,48 +567,79 @@ class DownloadingFragment : Fragment() {
     inner class grabData(val ConnURL: String) : AsyncTask<Void, Void, String>() {
         val mHashTags = StringBuilder()
         private var isSomeThingWrong = false
+        private var whatsWrong=""
         var document: Document? = null;
+        var response: Connection.Response?=null
 
         override fun onPreExecute() {
             super.onPreExecute()
 
             mPost=Post()
-            mPost.url = ConnURL;
+            document=null
+            response=null
+            mHashTags.clear()
+            mPost?.url = ConnURL;
             mProgressBar.progress = 100
             mProgressBar.visibility = View.VISIBLE
             mCardView.visibility = View.INVISIBLE
             btPlayVideo.visibility = View.INVISIBLE
+            isSomeThingWrong=false;
+            whatsWrong=""
             hideKeybord()
             Crashlytics.log("connecting to $postUrl")
+
+            val bundle=Bundle()
+            bundle.putString("connUrl", mPost?.url)
+            firebaseAnalytics?.logEvent("scrap", bundle)
 
 
         }
 
         override fun doInBackground(vararg p0: Void?): String {
             try {
-                document = Jsoup.connect(ConnURL).timeout(6000).ignoreContentType(true).parser(Parser.htmlParser()).get()
+                response = Jsoup
+                        .connect(ConnURL)
+                        .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                        .timeout(6000).execute()
+                Log.d(TAG, "jsoup response ${response?.statusCode()}")
+                response?.statusCode()?.let { Crashlytics.setCustomKey("Jsoup response code ", it) }
+               if (200 == response?.statusCode()){
+                   document=response?.parse()
+               }
+
             } catch (Ex: Exception) {
                 Ex.printStackTrace()
+                response?.statusCode()?.let { Crashlytics.setCustomKey("Jsoup response code ", it) }
+                Crashlytics.recordException(Ex)
+                whatsWrong=Ex.localizedMessage
                 isSomeThingWrong = true
+                val bundle=Bundle()
+                response?.statusCode()?.let { bundle.putInt("Jsoup response code", it) }
+
+                firebaseAnalytics?.logEvent("Jsoup_error", bundle)
             }
             try {
                 if (document != null) {
                     for (meta in document!!.select("meta")) {
 
                         if ((meta.attr("property").equals("instapp:hashtags") || meta.attr("property").equals("video:tag")))
-                            mPost.hashTags = mHashTags.append("#").append(meta.attr("content")).append(" ")
+                            mPost?.hashTags = mHashTags.append("#").append(meta.attr("content")).append(" ")
                         if (meta.attr("property").equals("og:image"))
-                            mPost.imageURL = meta.attr("content")
+                            mPost?.imageURL = meta.attr("content")
 //                    if (meta.attr("property").equals("og:description"))
 //                        mPost.content = meta.attr("content")
 
                         if (meta.attr("property").equals("og:video"))
-                            mPost.videoURL = meta.attr("content")
+                            mPost?.videoURL = meta.attr("content")
                         if (meta.attr("name").equals("medium"))
-                            mPost.medium = meta.attr("content")
+                            mPost?.medium = meta.attr("content")
                         if (meta.attr("property").equals("og:url")) {
-                            mPost.postID = meta.attr("content").replace("https://www.instagram.com/p/", "")
-                            mPost.postID = mPost.postID.replace("/", "")
+                            mPost?.postID = meta.attr("content").replace("https://www.instagram.com/p/", "")
+                            mPost?.postID = mPost?.postID?.replace("/", "")
+                        }
+
+                        if (meta.attr("property").equals("og:type")){
+                            mPost?.type = meta.attr("content")
                         }
                     }
                     //val script = document!!.getElementsByTag("script")
@@ -541,7 +651,7 @@ class DownloadingFragment : Fragment() {
                                 val json =JSONObject(element.dataNodes()[0].wholeData)
 
                                try{
-                                   mPost.content=json.getString("caption")
+                                   mPost?.content=json.getString("caption")
                                }catch (json: JSONException){
 
                                }
@@ -554,7 +664,8 @@ class DownloadingFragment : Fragment() {
 
             } catch (ex: Exception) {
                 ex.printStackTrace()
-
+                Crashlytics.recordException(ex)
+                whatsWrong=ex.localizedMessage
                 isSomeThingWrong = true
 
             }
@@ -565,16 +676,31 @@ class DownloadingFragment : Fragment() {
             super.onPostExecute(result)
 
           if (isAdded && activity!=null){
+              val bundle=Bundle()
+              bundle.putString("connUrl", mPost?.url)
                 if (!isSomeThingWrong) {
 
                     UpdateUI()
-                    Downloader()
-                } else {
+                   if (mPost?.type.equals("profile")){
+                       Crashlytics.setCustomKey("url", mPost?.url.toString())
+                       try {
+                         trowPrivatePost()
+                       }catch (E: Exception){
+                           Crashlytics.recordException(E)
+                       }
+                       postIsPrivate()
+                       firebaseAnalytics?.logEvent("privatePost", bundle)
+                   }else{
+                       Downloader()
+                       firebaseAnalytics?.logEvent("initDownload", bundle)
+                   }
+                }
+                else {
                     mProgressBar.visibility = View.INVISIBLE
                     try{
-                        showError()
+                        showError(whatsWrong)
 
-                    }catch (E:Exception){
+                    }catch (E: Exception){
 
                     }
                 }
@@ -586,13 +712,13 @@ class DownloadingFragment : Fragment() {
             mProgressBar.visibility = View.INVISIBLE
 
             mCardView.visibility = View.VISIBLE
-            mHashTagTextView.setText(mPost.hashTags)
-            mCaptionTextView.text=mPost.content
-            Picasso.get().load(mPost.imageURL) .into(mImage)
+            mHashTagTextView.setText(mPost?.hashTags)
+            mCaptionTextView.text=mPost?.content
+            Picasso.get().load(mPost?.imageURL) .into(mImage)
 
         }
 
-        private fun isContainsColan(): Boolean = mPost.content.contains(":")
+
 
         private fun Downloader() {
 
@@ -601,14 +727,11 @@ class DownloadingFragment : Fragment() {
 
             try {
 
-                if (mPost.medium==null ){
-                    postIsPrivate()
-                }
                 var downloadingFileUrl =""
-                downloadingFileUrl = if(mPost.medium=="image"){
-                    mPost.imageURL
+                downloadingFileUrl = if(mPost?.medium=="image"){
+                    mPost?.imageURL.toString()
                 }else{
-                    mPost.videoURL
+                    mPost?.videoURL.toString()
                 }
                 val filePaht = getRootDirPath() + "/" + (System.currentTimeMillis().toString() + getFileExtenstion(downloadingFileUrl))
                 if (filePaht!=null){
@@ -627,14 +750,14 @@ class DownloadingFragment : Fragment() {
         }
 
     fun getFileExtenstion(url: String): String {
-      return if (mPost.medium=="image"){
+      return if (mPost?.medium=="image"){
             ".jpg"
        }else{
            ".mp4"
        }
     }
     fun getRootDirPath(): String? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
            context?.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.absolutePath
         }else{
             Environment.getExternalStoragePublicDirectory(
@@ -673,6 +796,7 @@ class DownloadingFragment : Fragment() {
                 .setMessage("You need to login your account to downland this post, you will login your account on instagram official website we will not obtain your information in any way ")
                 .setPositiveButton("Login") { dialog, which ->
                     // continue with delete
+                    firebaseAnalytics?.logEvent("clickLogin", null)
                    startActivityForResult(Intent(activity, Login::class.java), LOGIN_RESULT_CODE)
                 }
 
@@ -680,11 +804,12 @@ class DownloadingFragment : Fragment() {
                 .show()
     }
 
-    private fun showError(){
+    private fun showError(errorMessage: String){
         if (isAdded && activity!=null){
             AlertDialog.Builder(activity!!)
                     .setTitle("Error try again")
-                    .setPositiveButton("try again",DialogInterface.OnClickListener { dialogInterface, i ->
+                    .setMessage(errorMessage)
+                    .setPositiveButton("try again", DialogInterface.OnClickListener { dialogInterface, i ->
                         if (!mEditTextInputURl.text.toString().isEmpty()) {
                             grabData(mEditTextInputURl.text.toString()).execute()
                         }
@@ -693,8 +818,124 @@ class DownloadingFragment : Fragment() {
 
         }
     }
+    private fun isInstaPost(url: String):Boolean{
+
+        return url.toLowerCase().contains(".com/p/")
+    }
 
 
+    private fun trowPrivatePost(){
+        throw CustomException("PrivatePost")
+    }
 
+    class CustomException : Exception {
+        constructor() : super()
+        constructor(message: String) : super(message)
+        constructor(message: String, cause: Throwable) : super(message, cause)
+        constructor(cause: Throwable) : super(cause)
+    }
+
+    private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {
+        // Set the media view.
+        adView.setMediaView(adView.findViewById<View>(R.id.ad_media) as MediaView)
+
+        // Set other ad assets.
+        adView.setHeadlineView(adView.findViewById(R.id.ad_headline))
+        adView.setBodyView(adView.findViewById(R.id.ad_body))
+        adView.setCallToActionView(adView.findViewById(R.id.ad_call_to_action))
+        adView.setIconView(adView.findViewById(R.id.ad_app_icon))
+        adView.setPriceView(adView.findViewById(R.id.ad_price))
+        adView.setStarRatingView(adView.findViewById(R.id.ad_stars))
+        adView.setStoreView(adView.findViewById(R.id.ad_store))
+        adView.setAdvertiserView(adView.findViewById(R.id.ad_advertiser))
+
+        // The headline and mediaContent are guaranteed to be in every NativeAd.
+        (adView.headlineView as TextView).setText(nativeAd.getHeadline())
+        adView.mediaView.setMediaContent(nativeAd.getMediaContent())
+
+        // These assets aren't guaranteed to be in every NativeAd, so it's important to
+        // check before trying to display them.
+        if (nativeAd.getBody() == null) {
+            adView.bodyView.visibility = View.INVISIBLE
+        } else {
+            adView.bodyView.visibility = View.VISIBLE
+            (adView.bodyView as TextView).setText(nativeAd.getBody())
+        }
+        if (nativeAd.getCallToAction() == null) {
+            adView.callToActionView.visibility = View.INVISIBLE
+        } else {
+            adView.callToActionView.visibility = View.VISIBLE
+            (adView.callToActionView as Button).setText(nativeAd.getCallToAction())
+        }
+        if (nativeAd.getIcon() == null) {
+            adView.iconView.visibility = View.GONE
+        } else {
+            (adView.iconView as ImageView).setImageDrawable(
+                    nativeAd.getIcon().getDrawable())
+            adView.iconView.visibility = View.VISIBLE
+        }
+        if (nativeAd.getPrice() == null) {
+            adView.priceView.visibility = View.INVISIBLE
+        } else {
+            adView.priceView.visibility = View.VISIBLE
+            (adView.priceView as TextView).setText(nativeAd.getPrice())
+        }
+        if (nativeAd.getStore() == null) {
+            adView.storeView.visibility = View.INVISIBLE
+        } else {
+            adView.storeView.visibility = View.VISIBLE
+            (adView.storeView as TextView).setText(nativeAd.getStore())
+        }
+        if (nativeAd.getStarRating() == null) {
+            adView.starRatingView.visibility = View.INVISIBLE
+        } else {
+           try {
+               (adView.starRatingView as RatingBar).rating = nativeAd.getStarRating().toFloat()
+               adView.starRatingView.visibility = View.VISIBLE
+           }catch (E:Exception){
+               E.printStackTrace()
+           }
+        }
+        if (nativeAd.getAdvertiser() == null) {
+            adView.advertiserView.visibility = View.INVISIBLE
+        } else {
+            (adView.advertiserView as TextView).setText(nativeAd.getAdvertiser())
+            adView.advertiserView.visibility = View.VISIBLE
+        }
+
+        // This method tells the Google Mobile Ads SDK that you have finished populating your
+        // native ad view with this native ad.
+        adView.setNativeAd(nativeAd)
+
+        // Get the video controller for the ad. One will always be provided, even if the ad doesn't
+        // have a video asset.
+        val vc: VideoController = nativeAd.getMediaContent().getVideoController()
+
+        // Updates the UI to say whether or not this ad has a video asset.
+        if (vc.hasVideoContent()) {
+
+
+            // Create a new VideoLifecycleCallbacks object and pass it to the VideoController. The
+            // VideoController will call methods on this object when events occur in the video
+            // lifecycle.
+            vc.videoLifecycleCallbacks = object : VideoLifecycleCallbacks() {
+                override fun onVideoEnd() {
+                    // Publishers should allow native ads to complete video playback before
+                    // refreshing or replacing them with another ad in the same UI location.
+
+
+                    super.onVideoEnd()
+                }
+            }
+        } else {
+
+        }
+    }
+    fun getNonPersonalizedAdsBundle(): Bundle {
+        val extras = Bundle()
+        extras.putString("npa", "1")
+
+        return extras
+    }
 
 }

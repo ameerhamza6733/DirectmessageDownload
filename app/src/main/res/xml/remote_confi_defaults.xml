@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- START xml_defaults -->
+<defaultsMap>
+    <entry>
+        <key>non_personalized_ads</key>
+        <value>false</value>
+    </entry>
+
+</defaultsMap>
