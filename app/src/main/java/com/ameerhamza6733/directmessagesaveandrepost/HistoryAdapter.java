@@ -71,6 +71,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
                 // if(mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString()!=null && !mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString().isEmpty()){
                 try {
                     new ClipBrodHelper().WriteToClipBord(view.getContext(), mDataSet.get(viewHolder.getAdapterPosition()).getHashTags().toString());
+                    if (historyFragment!=null)
                     historyFragment.showAds();
                 } catch (NullPointerException n) {
                     Toast.makeText(view.getContext(), "NO Hash tag found for this Post", Toast.LENGTH_SHORT).show();
@@ -89,6 +90,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
                     new InstaIntent().createVideoInstagramIntent("image/*", mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(), view.getContext(), false);
 
                 }
+                if (historyFragment!=null)
                 historyFragment.showAds();
             }
         });
@@ -102,6 +104,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
                     new InstaIntent().createVideoInstagramIntent("image/*", mDataSet.get(viewHolder.getAdapterPosition()).getPathToStorage(), view.getContext(), true);
 
                 }
+                if (historyFragment!=null)
                 historyFragment.showAds();
             }
         });

@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,5 +59,16 @@ public final class NetworkUtils {
             builder.append(param.getValue() != null ? param.getValue() : "");
         }
         return builder.toString();
+    }
+
+    public static boolean isValidURL(String url) {
+
+        try {
+            new URL(url).toURI();
+        } catch (MalformedURLException | URISyntaxException e) {
+            return false;
+        }
+
+        return true;
     }
 }

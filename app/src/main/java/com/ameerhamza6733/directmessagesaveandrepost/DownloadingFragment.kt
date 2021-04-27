@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
-import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,10 +24,13 @@ import androidx.appcompat.widget.AppCompatImageView
 import androidx.cardview.widget.CardView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.work.*
 import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants
 import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants.LOGIN_RESULT_CODE
 import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils
 import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils.settingsHelper
+import com.ameerhamza6733.directmessagesaveandrepost.utils.IntentUtils
+import com.ameerhamza6733.directmessagesaveandrepost.utils.NetworkUtils
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.github.clans.fab.FloatingActionButton
 import com.google.ads.consent.ConsentInformation
@@ -41,12 +43,13 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAd.OnNativeAdLoadedListener
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
-import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.gson.Gson
 import com.liulishuo.filedownloader.BaseDownloadTask
 import com.liulishuo.filedownloader.FileDownloadListener
 import com.liulishuo.filedownloader.FileDownloader
@@ -94,7 +97,11 @@ class DownloadingFragment : Fragment() {
         override fun pending(task: BaseDownloadTask, soFarBytes: Int, totalBytes: Int) {}
 
         override fun started(task: BaseDownloadTask?) {
-            firebaseAnalytics?.logEvent("downloadingStarted", null);
+          if (logEventUserLogin){
+              firebaseAnalytics?.logEvent("downloadingStartedLogin", null);
+          }else{
+              firebaseAnalytics?.logEvent("downloadingStarted", null);
+          }
             Toast.makeText(numberProgressBar.context, "Please wait", Toast.LENGTH_SHORT).show()
             numberProgressBar.max = 100
             numberProgressBar.progress = 0
@@ -109,14 +116,22 @@ class DownloadingFragment : Fragment() {
         override fun blockComplete(task: BaseDownloadTask?) {}
 
         override fun retry(task: BaseDownloadTask?, ex: Throwable?, retryingTimes: Int, soFarBytes: Int) {
-
+           Crashlytics.log("retry")
+            ex?.let { Crashlytics?.recordException(it) }
+            val bundel=Bundle()
+            bundel.putString("retryError", ex?.message)
+            firebaseAnalytics?.logEvent("retry", bundel);
         }
 
         override fun completed(task: BaseDownloadTask) {
 
             activity?.let {
                 it.runOnUiThread {
-                    firebaseAnalytics?.logEvent("downloadingCompleted", null);
+                   if (logEventUserLogin){
+                       firebaseAnalytics?.logEvent("downloadingCompletedLogin", null);
+                   }else{
+                       firebaseAnalytics?.logEvent("downloadingCompleted", null);
+                   }
                     numberProgressBar.progress = 100
                     Toast.makeText(activity, "Downloading complete", Toast.LENGTH_SHORT).show()
                     numberProgressBar.progress = 100
@@ -149,9 +164,21 @@ class DownloadingFragment : Fragment() {
         override fun paused(task: BaseDownloadTask, soFarBytes: Int, totalBytes: Int) {}
 
         override fun error(task: BaseDownloadTask, e: Throwable) {
-            firebaseAnalytics?.logEvent("downloadingError", null);
+            Crashlytics.log("error")
+           e.printStackTrace()
+            Crashlytics?.recordException(e)
+           if (logEventUserLogin){
+               firebaseAnalytics?.logEvent("downloadingErrorLogin", null);
+           }else{
+               firebaseAnalytics?.logEvent("downloadingError", null);
+           }
             if (activity!=null && isAdded){
-                Toast.makeText(activity, "Error: Please try again with different post", Toast.LENGTH_LONG).show()
+                Snackbar.make(rootCardView, "Error: i am working on this error", Snackbar.LENGTH_INDEFINITE)
+                        .setAction("Retry") {
+                            logEventUserLogin=true
+                            firebaseAnalytics?.logEvent("manually_retry", null)
+
+                        }.show()
             }
 
         }
@@ -221,6 +248,7 @@ class DownloadingFragment : Fragment() {
     private lateinit var remoteConfig: FirebaseRemoteConfig
  //   private lateinit var nativeAdTempalte: TemplateView
     private var firebaseAnalytics:FirebaseAnalytics?=null
+    private var logEventUserLogin=false
 
     private var task: BaseDownloadTask?=null
     private lateinit var mBitMapImageToShare: Bitmap
@@ -279,15 +307,10 @@ class DownloadingFragment : Fragment() {
                     // OnLoadedListener implementation.
                     // If this callback occurs after the activity is destroyed, you must call
                     // destroy and return or you may get a memory leak.
-                    var isDestroyed = false
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                        isDestroyed = activity?.isDestroyed == true
-                    }
-                    if (isDestroyed && activity?.isFinishing==true) {
-                        nativeAd.destroy()
-                        return@OnNativeAdLoadedListener
-                    }else{
+
+                    if (isAdded && activity != null) {
+
                         mNativeAd?.destroy()
 
                         mNativeAd = nativeAd
@@ -296,6 +319,10 @@ class DownloadingFragment : Fragment() {
                         populateNativeAdView(nativeAd, adView)
                         mAdPlaceHolder.removeAllViews()
                         mAdPlaceHolder.addView(adView)
+
+                    } else {
+                        nativeAd.destroy()
+                        return@OnNativeAdLoadedListener
                     }
                     // You must call destroy on old ads when you are done with them,
                     // otherwise you will have a memory leak.
@@ -351,8 +378,10 @@ class DownloadingFragment : Fragment() {
            // adds cookies to database for quick access
            val uid: Long = CookieUtils.getUserIdFromCookie(cookie)
            mEditTextInputURl.setText(postUrl)
+
            checkBuildNO()
-      }
+
+       }
     }
 
 
@@ -414,14 +443,18 @@ class DownloadingFragment : Fragment() {
 
 
     private fun setUpListerners() {
-        mCheckAndSaveButton.setOnClickListener({
-            postUrl = mEditTextInputURl.text.toString()
-            manualyDownload = true;
-            checkBuildNO()
-            if (remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NATIVE_ADS_DOWNLOADING_SCREEN)){
-                refreshAd()
-            }
-        })
+        mCheckAndSaveButton.setOnClickListener {
+
+           if (!mEditTextInputURl.text.isNullOrBlank()){
+               postUrl=mEditTextInputURl.text.toString()
+               manualyDownload = true;
+               logEventUserLogin = false
+               checkBuildNO()
+               if (remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NATIVE_ADS_DOWNLOADING_SCREEN)) {
+                   refreshAd()
+               }
+           }
+        }
 
         mFabRepostButton.setOnClickListener({ shareIntent(true) })
         mFabShareButton.setOnClickListener({ shareIntent(false) })
@@ -455,7 +488,7 @@ class DownloadingFragment : Fragment() {
 
                         mEditTextInputURl.text.clear()
                         mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
-                        postUrl=mEditTextInputURl.text.toString()
+            postUrl=mEditTextInputURl.text.toString()
                         hideKeybord()
 
 
@@ -515,12 +548,27 @@ class DownloadingFragment : Fragment() {
 
     private fun intiDownloader() {
         if (atoSaveStartDownloading || manualyDownload) {
-            rootCardView.visibility=View.VISIBLE
-            if (Patterns.WEB_URL.matcher(postUrl).matches()) {
+            mProgressBar.visibility = View.VISIBLE
+            mCardView.visibility = View.INVISIBLE
+            btPlayVideo.visibility = View.INVISIBLE
+
+            if (NetworkUtils.isValidURL(postUrl)) {
                 if (isInstaPost(postUrl)){
-                    grabData(postUrl).execute()
+                    postUrl="https://www.instagram.com/p/"+IntentUtils.parseUrl(mEditTextInputURl.text.toString())?.text
+                    val cookie = settingsHelper.getString(Constants.COOKIE)
+                    if (cookie.isEmpty()){
+                        Crashlytics.log("cookies null")
+                        grabData(postUrl).execute()
+                    }else{
+                        logEventUserLogin=true
+                        CookieUtils.setupCookies(cookie)
+                            fetchPost()
+                            Crashlytics.log("cookiesSetup")
+                        }
+
+
                 }else{
-                    Toast.makeText(activity, "Please enter valid post url", Toast.LENGTH_LONG).show()
+                  Snackbar.make(rootCardView, "Enter valid insta post url", Snackbar.LENGTH_LONG).show()
                 }
             }else{
                 Toast.makeText(activity, "Enter valid url", Toast.LENGTH_LONG).show()
@@ -529,6 +577,28 @@ class DownloadingFragment : Fragment() {
         } else {
             mProgressBar.visibility = View.INVISIBLE
         }
+    }
+
+    private fun fetchPost(){
+        val postScrapWorker = OneTimeWorkRequest.Builder(PostScrapWorker::class.java)
+                .setInputData(Data.Builder()
+                        .putString("url", postUrl)
+                        .build()
+                )
+                .build()
+
+        WorkManager.getInstance(activity!!.applicationContext).beginUniqueWork("scapPost", ExistingWorkPolicy.REPLACE, postScrapWorker).enqueue()
+        WorkManager.getInstance(activity!!.applicationContext).getWorkInfoByIdLiveData(postScrapWorker.id)
+                .observe(viewLifecycleOwner) { workInfo ->
+                    if(workInfo?.state == WorkInfo.State.SUCCEEDED) {
+                       Log.d(TAG, "work manger done")
+                        Crashlytics.log("postScrapWorker done")
+                      val postJson=  workInfo.outputData.getString("post")
+                        mPost=Gson().fromJson(postJson, Post::class.java)
+                        UpdateUI()
+                        Downloader()
+                    }
+                }
     }
 
     private var mContext: Context? = null
@@ -596,6 +666,7 @@ class DownloadingFragment : Fragment() {
             isSomeThingWrong=false;
             whatsWrong=""
             hideKeybord()
+            Log.d(TAG, "coonection to ${postUrl}")
             Crashlytics.log("connecting to $postUrl")
 
             val bundle=Bundle()
@@ -608,9 +679,11 @@ class DownloadingFragment : Fragment() {
         override fun doInBackground(vararg p0: Void?): String {
             try {
                 response = Jsoup
-                        .connect(ConnURL)
+                        .connect(mPost?.url)
                         .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
-                        .timeout(6000).execute()
+                        .referrer("http://www.google.com")
+                        .timeout(30000)
+                        .execute()
                 Log.d(TAG, "jsoup response ${response?.statusCode()}")
                 response?.statusCode()?.let { Crashlytics.setCustomKey("Jsoup response code ", it) }
                if (200 == response?.statusCode()){
@@ -630,6 +703,7 @@ class DownloadingFragment : Fragment() {
             }
             try {
                 if (document != null) {
+                    Crashlytics.log("documents ${document?.toString()}")
                     for (meta in document!!.select("meta")) {
 
                         if ((meta.attr("property").equals("instapp:hashtags") || meta.attr("property").equals("video:tag")))
@@ -663,12 +737,16 @@ class DownloadingFragment : Fragment() {
                                try{
                                    mPost?.content=json.getString("caption")
                                }catch (json: JSONException){
-
+                                   Crashlytics.log("caption json ex")
+                                   Crashlytics.recordException(json
+                                   )
                                }
                             }
                         }
 
 
+                }else{
+                    Crashlytics.log("document is null")
                 }
 
 
@@ -688,9 +766,10 @@ class DownloadingFragment : Fragment() {
           if (isAdded && activity!=null){
               val bundle=Bundle()
               bundle.putString("connUrl", mPost?.url)
+              Crashlytics.log("post = ${Gson().toJson(mPost)}")
                 if (!isSomeThingWrong) {
 
-                    UpdateUI()
+
                    if (mPost?.type.equals("profile")){
                        Crashlytics.setCustomKey("url", mPost?.url.toString())
                        try {
@@ -701,6 +780,7 @@ class DownloadingFragment : Fragment() {
                        postIsPrivate()
                        firebaseAnalytics?.logEvent("privatePost", bundle)
                    }else{
+                       UpdateUI()
                        Downloader()
                        firebaseAnalytics?.logEvent("initDownload", bundle)
                    }
@@ -737,20 +817,31 @@ class DownloadingFragment : Fragment() {
 
             try {
 
-                var downloadingFileUrl =""
-                downloadingFileUrl = if(mPost?.medium=="image"){
+                var downloadingFileUrl: String? =""
+                downloadingFileUrl = if(mPost?.type?.contains("photo")==true){
+                    Crashlytics.log("mPost imageURL ${mPost?.imageURL.toString()}")
                     mPost?.imageURL.toString()
-                }else{
+                }else if (mPost?.type?.contains("video")==true) {
+                    Crashlytics.log("mPost videoUrl ${mPost?.videoURL.toString()}")
                     mPost?.videoURL.toString()
+                }else{
+                    null
                 }
-                val filePaht = getRootDirPath() + "/" + (System.currentTimeMillis().toString() + getFileExtenstion(downloadingFileUrl))
-                if (filePaht!=null){
-                    FileDownloader.getImpl().create(downloadingFileUrl)
-                            .setPath(filePaht)
-                            .setListener(fileDownloadListener).start()
-                } else {
-                    Toast.makeText(activity, "Unable to access to external storage ", Toast.LENGTH_LONG).show()
-                }
+
+               if (downloadingFileUrl!=null){
+                   val filePaht = getRootDirPath() + "/" + (System.currentTimeMillis().toString() + getFileExtenstion(downloadingFileUrl))
+                   if (filePaht!=null){
+                       FileDownloader.getImpl().pauseAll()
+                       FileDownloader.getImpl().create(downloadingFileUrl)
+                               .setPath(filePaht)
+                               .setListener(fileDownloadListener).start()
+                   } else {
+                       Toast.makeText(activity, "Unable to access to external storage ", Toast.LENGTH_LONG).show()
+                   }
+               }else{
+                   firebaseAnalytics?.logEvent("event_logInRequired", null);
+                   logInRequired()
+               }
 
             } catch (ex: Exception) {
                 ex.printStackTrace()
@@ -789,9 +880,9 @@ class DownloadingFragment : Fragment() {
     }
 
     fun hideKeybord() {
-        val view = activity!!.getCurrentFocus()
+        val view = activity?.getCurrentFocus()
         if (view != null) {
-            val imm = activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
         }
 
@@ -808,6 +899,22 @@ class DownloadingFragment : Fragment() {
                     // continue with delete
                     firebaseAnalytics?.logEvent("clickLogin", null)
                    startActivityForResult(Intent(activity, Login::class.java), LOGIN_RESULT_CODE)
+                }
+
+
+                .show()
+    }
+
+    private fun  logInRequired(){
+        val builder: AlertDialog.Builder
+
+        builder = AlertDialog.Builder(activity!!)
+        builder.setTitle("Login required")
+                .setMessage("You need to login your account to downland this post, you will login your account on instagram official website we will not obtain your information in any way ")
+                .setPositiveButton("Login") { dialog, which ->
+                    // continue with delete
+                    firebaseAnalytics?.logEvent("clickLogin", null)
+                    startActivityForResult(Intent(activity, Login::class.java), LOGIN_RESULT_CODE)
                 }
 
 
@@ -838,7 +945,11 @@ class DownloadingFragment : Fragment() {
         throw CustomException("PrivatePost")
     }
 
-    class CustomException : Exception {
+   private fun throwLogInRequired(){
+       throw CustomException("LoginRequired")
+   }
+
+    public class CustomException : Exception {
         constructor() : super()
         constructor(message: String) : super(message)
         constructor(message: String, cause: Throwable) : super(message, cause)
@@ -902,7 +1013,7 @@ class DownloadingFragment : Fragment() {
            try {
                (adView.starRatingView as RatingBar).rating = nativeAd.getStarRating().toFloat()
                adView.starRatingView.visibility = View.VISIBLE
-           }catch (E:Exception){
+           }catch (E: Exception){
                E.printStackTrace()
            }
         }

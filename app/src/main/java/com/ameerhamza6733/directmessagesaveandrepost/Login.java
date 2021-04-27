@@ -59,12 +59,14 @@ public final class Login extends AppCompatActivity implements  CompoundButton.On
             webViewUrl = url;
             progressBar.setVisibility(View.INVISIBLE);
 
-            firebaseAnalytics.logEvent("onPageFinished",bundle);
+
             final String mainCookie = CookieUtils.getCookie(url);
             if (TextUtils.isEmpty(mainCookie) || !mainCookie.contains("; ds_user_id=")) {
                 ready = true;
                 return;
             }
+            bundle.putString("url",webViewUrl);
+            firebaseAnalytics.logEvent("onPageFinished",bundle);
             if (mainCookie.contains("; ds_user_id=") && ready) {
                 firebaseAnalytics.logEvent("cookieGotIt",bundle);
                 returnCookieResult(mainCookie);
