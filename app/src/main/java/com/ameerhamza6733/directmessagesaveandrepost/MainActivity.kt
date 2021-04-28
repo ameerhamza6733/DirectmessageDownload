@@ -32,6 +32,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
+import kotlinx.android.synthetic.main.activity_main.*
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
@@ -98,6 +99,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
         progressBar=findViewById(R.id.progressBar2)
+        tvAppVersion.text = "App version : " + BuildConfig.VERSION_NAME;
        // checkForConsentForAdmob()
 
     }

@@ -257,7 +257,7 @@ class DownloadingFragment : Fragment() {
 
     private var manualyDownload = false
     private var atoSaveStartDownloading :Boolean=true;
-    private var postUrl=""
+
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_download, container, false)
@@ -377,8 +377,6 @@ class DownloadingFragment : Fragment() {
 
            // adds cookies to database for quick access
            val uid: Long = CookieUtils.getUserIdFromCookie(cookie)
-           mEditTextInputURl.setText(postUrl)
-
            checkBuildNO()
 
        }
@@ -390,7 +388,7 @@ class DownloadingFragment : Fragment() {
 
 
         activity?.let { activity->
-            if (!mHashTagTextView.text.isEmpty()) {
+            if (mPost?.hashTags?.toString()?.isNotEmpty()==true) {
                 val clipbordHelper = ClipBrodHelper()
                 clipbordHelper.WriteToClipBord(activity, mHashTagTextView.text.toString())
             } else {
@@ -408,13 +406,8 @@ class DownloadingFragment : Fragment() {
 
 
         activity?.let { activity->
-            var hashTagAndCaption = "";
-            if (!mHashTagTextView.text.isEmpty()) {
-                hashTagAndCaption = mHashTagTextView.text.toString();
-            }
-            if (!mCaptionTextView.text.isEmpty()) {
-                hashTagAndCaption += mCaptionTextView.text.toString()
-            }
+            var hashTagAndCaption = mPost?.content;
+
             val clipbordHelper = ClipBrodHelper()
             clipbordHelper.WriteToClipBord(activity!!.applicationContext, hashTagAndCaption)
             if (activity is MainActivity){
@@ -446,7 +439,7 @@ class DownloadingFragment : Fragment() {
         mCheckAndSaveButton.setOnClickListener {
 
            if (!mEditTextInputURl.text.isNullOrBlank()){
-               postUrl=mEditTextInputURl.text.toString()
+               Crashlytics.log("user past url ${mEditTextInputURl.text.toString()}")
                manualyDownload = true;
                logEventUserLogin = false
                checkBuildNO()
@@ -475,11 +468,7 @@ class DownloadingFragment : Fragment() {
 
 
 
-    override fun onPause() {
-        super.onPause()
-        if (mEditTextInputURl != null)
-            mEditTextInputURl.setText("")
-    }
+
 
     private fun copyDataFromClipBrod() {
         try {
@@ -488,7 +477,6 @@ class DownloadingFragment : Fragment() {
 
                         mEditTextInputURl.text.clear()
                         mEditTextInputURl.setText(ClipBrodHelper(activity).clipBrodText)
-            postUrl=mEditTextInputURl.text.toString()
                         hideKeybord()
 
 
@@ -532,8 +520,8 @@ class DownloadingFragment : Fragment() {
                 askPermistion()
             else {
 
-                if (!postUrl.equals(""))
-                    if (!checkIFPosAllreadyDownloaded(postUrl))
+                if (mEditTextInputURl.text.toString() != "")
+                    if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
                         intiDownloader()
             }
 
@@ -552,17 +540,18 @@ class DownloadingFragment : Fragment() {
             mCardView.visibility = View.INVISIBLE
             btPlayVideo.visibility = View.INVISIBLE
 
-            if (NetworkUtils.isValidURL(postUrl)) {
-                if (isInstaPost(postUrl)){
-                    postUrl="https://www.instagram.com/p/"+IntentUtils.parseUrl(mEditTextInputURl.text.toString())?.text
+            if (NetworkUtils.isValidURL(mEditTextInputURl.text.toString())) {
+                if (isInstaPost(mEditTextInputURl.text.toString())){
+                    Crashlytics.log("user past url ${mEditTextInputURl.text.toString()}")
+                   val  postUrl="https://www.instagram.com/p/"+IntentUtils.parseUrl(mEditTextInputURl.text.toString())?.text
                     val cookie = settingsHelper.getString(Constants.COOKIE)
                     if (cookie.isEmpty()){
                         Crashlytics.log("cookies null")
-                        grabData(postUrl).execute()
+                      grabData(postUrl).execute()
                     }else{
                         logEventUserLogin=true
                         CookieUtils.setupCookies(cookie)
-                            fetchPost()
+                            fetchPost(postUrl)
                             Crashlytics.log("cookiesSetup")
                         }
 
@@ -579,7 +568,7 @@ class DownloadingFragment : Fragment() {
         }
     }
 
-    private fun fetchPost(){
+    private fun fetchPost(postUrl:String){
         val postScrapWorker = OneTimeWorkRequest.Builder(PostScrapWorker::class.java)
                 .setInputData(Data.Builder()
                         .putString("url", postUrl)
@@ -624,8 +613,8 @@ class DownloadingFragment : Fragment() {
                     override fun onGrant() {
                         val msg: String = mEditTextInputURl.text.toString()
 
-                        if (!postUrl.equals(""))
-                            if (!checkIFPosAllreadyDownloaded(postUrl))
+                        if (!mEditTextInputURl.text.toString().equals(""))
+                            if (!checkIFPosAllreadyDownloaded(mEditTextInputURl.text.toString()))
                                 intiDownloader()
 
                     }
@@ -644,7 +633,7 @@ class DownloadingFragment : Fragment() {
 
 
     @SuppressLint("StaticFieldLeak")
-    inner class grabData(val ConnURL: String) : AsyncTask<Void, Void, String>() {
+    inner class grabData( val postUrl: String) : AsyncTask<Void, Void, String>() {
         val mHashTags = StringBuilder()
         private var isSomeThingWrong = false
         private var whatsWrong=""
@@ -658,7 +647,7 @@ class DownloadingFragment : Fragment() {
             document=null
             response=null
             mHashTags.clear()
-            mPost?.url = ConnURL;
+            mPost?.url = postUrl;
             mProgressBar.progress = 100
             mProgressBar.visibility = View.VISIBLE
             mCardView.visibility = View.INVISIBLE
@@ -735,7 +724,7 @@ class DownloadingFragment : Fragment() {
                                 val json =JSONObject(element.dataNodes()[0].wholeData)
 
                                try{
-                                   mPost?.content=json.getString("caption")
+                                   mPost?.caption=json.getString("caption")
                                }catch (json: JSONException){
                                    Crashlytics.log("caption json ex")
                                    Crashlytics.recordException(json
@@ -803,7 +792,7 @@ class DownloadingFragment : Fragment() {
 
             mCardView.visibility = View.VISIBLE
             mHashTagTextView.setText(mPost?.hashTags)
-            mCaptionTextView.text=mPost?.content
+            mCaptionTextView.text=mPost?.caption
             Picasso.get().load(mPost?.imageURL) .into(mImage)
 
         }
@@ -839,6 +828,11 @@ class DownloadingFragment : Fragment() {
                        Toast.makeText(activity, "Unable to access to external storage ", Toast.LENGTH_LONG).show()
                    }
                }else{
+                   try{
+                       logInRequired()
+                   }catch (E:Exception){
+                       Crashlytics.recordException(E)
+                   }
                    firebaseAnalytics?.logEvent("event_logInRequired", null);
                    logInRequired()
                }
@@ -937,7 +931,7 @@ class DownloadingFragment : Fragment() {
     }
     private fun isInstaPost(url: String):Boolean{
 
-        return url.toLowerCase().contains(".com/p/")
+        return url.contains("/p/") || url.contains("/reel/") || url.contains("/tv/")
     }
 
 

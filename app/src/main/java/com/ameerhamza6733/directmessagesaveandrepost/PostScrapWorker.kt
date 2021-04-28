@@ -43,13 +43,23 @@ class PostScrapWorker(context: Context, workerParams: WorkerParameters) : Worker
                 crashlytics.log("mediaJson ${mediaJson}")
                 val post = Post()
                 post.hashTags = extractHashTag(media1.caption.text)
-                post.content = media1.caption.text
+                post.content =media1.caption.text
+                post.caption= removeHashTags(media1.caption.text)
                 post.url=url
               if (media1.mediaType==MediaItemType.MEDIA_TYPE_IMAGE){
                  post.imageURL= media1.imageVersions2.candidates[0].url
                   post.medium="image";
                   post.type="photo"
               }else if (media1.mediaType==MediaItemType.MEDIA_TYPE_VIDEO){
+                  post.videoURL=media1.videoVersions[0].url
+                  post.imageURL= media1.imageVersions2.candidates[0].url
+                  post.medium="video";
+                  post.type="video"
+              }else if (media1.mediaType==MediaItemType.MEDIA_TYPE_SLIDER && media1.videoVersions==null){
+                  post.imageURL= media1.imageVersions2.candidates[0].url
+                  post.medium="image";
+                  post.type="photo"
+              }else if (media1.mediaType==MediaItemType.MEDIA_TYPE_SLIDER && media1.videoVersions!=null){
                   post.videoURL=media1.videoVersions[0].url
                   post.imageURL= media1.imageVersions2.candidates[0].url
                   post.medium="video";
@@ -79,7 +89,7 @@ class PostScrapWorker(context: Context, workerParams: WorkerParameters) : Worker
     private fun extractHashTag(caption: String?): StringBuilder {
         val hashTags = StringBuilder()
         if (caption != null) {
-            val hashTagsArray = caption.split("#".toRegex()).toTypedArray()
+            val hashTagsArray = caption.split("#".toRegex()).toTypedArray().reversedArray()
             for (hashtag in hashTagsArray) {
                 val trimHashTag= hashtag.trim()
                if (trimHashTag.contains(" ")){
@@ -87,14 +97,36 @@ class PostScrapWorker(context: Context, workerParams: WorkerParameters) : Worker
                }else{
                    Log.d(TAG, "hashTAg $trimHashTag")
                    hashTags.append("#")
-                           .append(" ")
                            .append(trimHashTag)
+                           .append(" ")
                }
 
             }
         }
         return hashTags
     }
+
+    private fun removeHashTags( caption: String?):String{
+
+        var newCaption = caption
+        if (caption != null) {
+            val hashTagsArray = caption.split("#".toRegex()).toTypedArray().reversedArray()
+            for (hashtag in hashTagsArray) {
+                val trimHashTag= hashtag.trim()
+                if (trimHashTag.contains(" ")){
+                    continue
+                }else{
+                    Log.d(TAG, "hashTAg $trimHashTag")
+                    newCaption=newCaption?.replace("#${trimHashTag}","")
+
+                }
+
+            }
+        }
+        return newCaption.toString()
+    }
+
+
 
     private fun throwReponseFail(){
         throw DownloadingFragment.CustomException("responseFail")

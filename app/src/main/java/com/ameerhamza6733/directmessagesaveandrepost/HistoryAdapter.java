@@ -62,7 +62,7 @@ class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
         // Get element from your dataset at this position and replace the contents of the view
         // with that element
         viewHolder.getTextView().setText(mDataSet.get(viewHolder.getAdapterPosition()).getHashTags());
-        viewHolder.getmDir().setText(mDataSet.get(viewHolder.getAdapterPosition()).getContent());
+        viewHolder.getmDir().setText(mDataSet.get(viewHolder.getAdapterPosition()).getCaption());
         Picasso.get().load(mDataSet.get(viewHolder.getAdapterPosition()).getImageURL()).into(viewHolder.getImageView());
         viewHolder.getmCopyHashTag().setOnClickListener(new View.OnClickListener() {
             @Override

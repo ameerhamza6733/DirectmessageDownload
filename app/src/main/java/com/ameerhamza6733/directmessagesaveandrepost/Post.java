@@ -8,6 +8,7 @@ public class Post {
     private String imageURL;
     private String videoURL;
     private StringBuilder hashTags;
+    private String caption;
     private String content;
     private String medium;
     private String postID;
@@ -91,5 +92,13 @@ public class Post {
 
     public String getPathToStorage() {
         return pathToStorage;
+    }
+
+    public String getCaption() {
+        return caption;
+    }
+
+    public void setCaption(String caption) {
+        this.caption = caption;
     }
 }
