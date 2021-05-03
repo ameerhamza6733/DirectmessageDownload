@@ -99,6 +99,12 @@
                     android:padding="16dp"
                     android:textColor="#0d47a1" />
 
+<!--                <com.google.android.ads.nativetemplates.TemplateView-->
+<!--                    android:id="@+id/my_navtive_ad_template"-->
+<!--                    android:layout_below="@+id/textView_description"-->
+<!--                app:gnt_template_type="@layout/gnt_medium_template_view"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="350dp" />-->
                 <FrameLayout
                     android:layout_marginTop="8dp"
                     android:id="@+id/fl_adplaceholder"

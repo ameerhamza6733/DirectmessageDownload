@@ -9,8 +9,8 @@ android {
         applicationId "com.ameerhamza6733.directmessagesaveandrepost"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 55
-        versionName "1.0.56"
+        versionCode 59
+        versionName "1.0.59"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
@@ -76,6 +76,8 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation "androidx.work:work-runtime:2.5.0"
+    implementation project(':nativetemplates')
+
 
 
 

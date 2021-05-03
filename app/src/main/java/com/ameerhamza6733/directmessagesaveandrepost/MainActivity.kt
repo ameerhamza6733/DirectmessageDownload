@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var fragmentManager: FragmentManager? = null
     private var TAG = "MainActivityTAG";
     private var mContext: Context? = null
-    private var deviceTestId="84B80A634F2B75467E10A4579885F9C7"
+    private var deviceTestId= listOf("DDFA9BBDCDA7A3335DF814D93BF4E2C8")
     private lateinit var progressBar: ProgressBar
     private lateinit var remoteConfig: FirebaseRemoteConfig
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        val admonConfig= RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList(deviceTestId))
+        val admonConfig= RequestConfiguration.Builder().setTestDeviceIds(deviceTestId)
         MobileAds.setRequestConfiguration(admonConfig.build());
         MobileAds.initialize(this, object : OnInitializationCompleteListener {
             override fun onInitializationComplete(p0: InitializationStatus?) {
@@ -217,7 +217,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (mContext == null)
             return
 
-        ConsentInformation.getInstance(mContext).addTestDevice(deviceTestId)
+
         val consentInformation = ConsentInformation.getInstance(mContext)
 
         val publisherIds = arrayOf("pub-5168564707064012")
@@ -364,6 +364,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 mInterstitialAd = p0
                 Log.d(TAG, "interstitial ad loaded")
                 progressBar.visibility = View.INVISIBLE
+                if (adRequest.isTestDevice(applicationContext)){
+                    Log.d(TAG, "ad load from test device")
+                }
                 loadFragment()
             }
 

@@ -9,6 +9,11 @@
         <key>show_download_native_ad</key>
         <value>true</value>
     </entry>
+    <entry>
+        <key>use_http_api</key>
+        <value>true</value>
+    </entry>
+
 
 
 </defaultsMap>

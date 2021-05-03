@@ -24,6 +24,7 @@ import androidx.appcompat.widget.AppCompatImageView
 import androidx.cardview.widget.CardView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.work.*
 import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants
 import com.ameerhamza6733.directmessagesaveandrepost.utils.Constants.LOGIN_RESULT_CODE
@@ -31,6 +32,8 @@ import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils
 import com.ameerhamza6733.directmessagesaveandrepost.utils.CookieUtils.settingsHelper
 import com.ameerhamza6733.directmessagesaveandrepost.utils.IntentUtils
 import com.ameerhamza6733.directmessagesaveandrepost.utils.NetworkUtils
+import com.ameerhamza6733.directmessagesaveandrepost.workers.CheckPostPermission
+import com.ameerhamza6733.directmessagesaveandrepost.workers.PostScrapWorker
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.github.clans.fab.FloatingActionButton
 import com.google.ads.consent.ConsentInformation
@@ -63,6 +66,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
 import java.io.File
+import java.net.HttpURLConnection
 import java.util.*
 
 
@@ -97,7 +101,7 @@ class DownloadingFragment : Fragment() {
         override fun pending(task: BaseDownloadTask, soFarBytes: Int, totalBytes: Int) {}
 
         override fun started(task: BaseDownloadTask?) {
-          if (logEventUserLogin){
+          if (userCookiesSaved){
               firebaseAnalytics?.logEvent("downloadingStartedLogin", null);
           }else{
               firebaseAnalytics?.logEvent("downloadingStarted", null);
@@ -127,7 +131,7 @@ class DownloadingFragment : Fragment() {
 
             activity?.let {
                 it.runOnUiThread {
-                   if (logEventUserLogin){
+                   if (userCookiesSaved){
                        firebaseAnalytics?.logEvent("downloadingCompletedLogin", null);
                    }else{
                        firebaseAnalytics?.logEvent("downloadingCompleted", null);
@@ -167,7 +171,7 @@ class DownloadingFragment : Fragment() {
             Crashlytics.log("error")
            e.printStackTrace()
             Crashlytics?.recordException(e)
-           if (logEventUserLogin){
+           if (userCookiesSaved){
                firebaseAnalytics?.logEvent("downloadingErrorLogin", null);
            }else{
                firebaseAnalytics?.logEvent("downloadingError", null);
@@ -175,7 +179,7 @@ class DownloadingFragment : Fragment() {
             if (activity!=null && isAdded){
                 Snackbar.make(rootCardView, "Error: i am working on this error", Snackbar.LENGTH_INDEFINITE)
                         .setAction("Retry") {
-                            logEventUserLogin=true
+                            userCookiesSaved=true
                             firebaseAnalytics?.logEvent("manually_retry", null)
 
                         }.show()
@@ -246,11 +250,13 @@ class DownloadingFragment : Fragment() {
     private lateinit var btPlayVideo:AppCompatImageView
     private  var mNativeAd:NativeAd?=null
     private lateinit var remoteConfig: FirebaseRemoteConfig
- //   private lateinit var nativeAdTempalte: TemplateView
+//    private lateinit var nativeAdTempalte: TemplateView
     private var firebaseAnalytics:FirebaseAnalytics?=null
-    private var logEventUserLogin=false
+    private var userCookiesSaved=false
 
     private var task: BaseDownloadTask?=null
+    private var observerScrapPost:Observer<WorkInfo>?=null
+    private var observerCheckPostPermission:Observer<WorkInfo>?=null
     private lateinit var mBitMapImageToShare: Bitmap
     private  var mPost:Post?=null
     lateinit var postKeyFromShardPraf: String
@@ -295,26 +301,32 @@ class DownloadingFragment : Fragment() {
 
     override fun onDestroy() {
         mNativeAd?.destroy()
+//        nativeAdTempalte.nativeAdView.destroy() // This was the part I didn't expect to be needed
+//        nativeAdTempalte.removeAllViews()
         super.onDestroy()
     }
 
+
+    private fun refreshAdIntoNativeAdTempalte(){
+
+    }
 
     private fun refreshAd() {
 
         val builder = AdLoader.Builder(activity, getString(R.string.native_ad_real_id))
         builder.forNativeAd(
                 OnNativeAdLoadedListener { nativeAd ->
-                    // OnLoadedListener implementation.
-                    // If this callback occurs after the activity is destroyed, you must call
-                    // destroy and return or you may get a memory leak.
-
 
                     if (isAdded && activity != null) {
 
                         mNativeAd?.destroy()
-
+//                        nativeAdTempalte.nativeAdView.destroy() // This was the part I didn't expect to be needed
+//                        nativeAdTempalte.removeAllViews()
                         mNativeAd = nativeAd
 
+//                        val styles = NativeTemplateStyle.Builder().build()
+//                        nativeAdTempalte.setStyles(styles)
+//                        nativeAdTempalte.setNativeAd(mNativeAd)
                         val adView = layoutInflater.inflate(R.layout.native_ad, null) as NativeAdView
                         populateNativeAdView(nativeAd, adView)
                         mAdPlaceHolder.removeAllViews()
@@ -324,9 +336,6 @@ class DownloadingFragment : Fragment() {
                         nativeAd.destroy()
                         return@OnNativeAdLoadedListener
                     }
-                    // You must call destroy on old ads when you are done with them,
-                    // otherwise you will have a memory leak.
-
 
                 })
         val videoOptions = VideoOptions.Builder().build()
@@ -438,10 +447,10 @@ class DownloadingFragment : Fragment() {
     private fun setUpListerners() {
         mCheckAndSaveButton.setOnClickListener {
 
-           if (!mEditTextInputURl.text.isNullOrBlank()){
+           if (!mEditTextInputURl.text.isNullOrBlank() && !IntentUtils.parseUrl(mEditTextInputURl.text.toString())?.text.isNullOrBlank()){
                Crashlytics.log("user past url ${mEditTextInputURl.text.toString()}")
                manualyDownload = true;
-               logEventUserLogin = false
+               userCookiesSaved = false
                checkBuildNO()
                if (remoteConfig.getBoolean(RemoteConfigConstants.DISPLAY_NATIVE_ADS_DOWNLOADING_SCREEN)) {
                    refreshAd()
@@ -492,7 +501,7 @@ class DownloadingFragment : Fragment() {
     }
 
     fun staupUI(view: View) {
-       // nativeAdTempalte=view.findViewById(R.id.my_template)
+    //    nativeAdTempalte=view.findViewById(R.id.my_navtive_ad_template)
         mEditTextInputURl = view.findViewById<EditText>(R.id.URL_Input_edit_text) as EditText
         mCheckAndSaveButton = view.findViewById<Button>(R.id.chack_and_save_post) as Button
         mImage = view.findViewById<ImageView>(R.id.imageView) as ImageView
@@ -536,25 +545,30 @@ class DownloadingFragment : Fragment() {
 
     private fun intiDownloader() {
         if (atoSaveStartDownloading || manualyDownload) {
+
             mProgressBar.visibility = View.VISIBLE
             mCardView.visibility = View.INVISIBLE
             btPlayVideo.visibility = View.INVISIBLE
 
             if (NetworkUtils.isValidURL(mEditTextInputURl.text.toString())) {
                 if (isInstaPost(mEditTextInputURl.text.toString())){
+
                     Crashlytics.log("user past url ${mEditTextInputURl.text.toString()}")
                    val  postUrl="https://www.instagram.com/p/"+IntentUtils.parseUrl(mEditTextInputURl.text.toString())?.text
                     val cookie = settingsHelper.getString(Constants.COOKIE)
+
                     if (cookie.isEmpty()){
+
                         Crashlytics.log("cookies null")
-                      grabData(postUrl).execute()
+                        grabData(postUrl).execute()
+
                     }else{
-                        logEventUserLogin=true
+
+                        userCookiesSaved=true
                         CookieUtils.setupCookies(cookie)
-                            fetchPost(postUrl)
+                            fetchPost(postUrl,cookie)
                             Crashlytics.log("cookiesSetup")
                         }
-
 
                 }else{
                   Snackbar.make(rootCardView, "Enter valid insta post url", Snackbar.LENGTH_LONG).show()
@@ -568,26 +582,107 @@ class DownloadingFragment : Fragment() {
         }
     }
 
-    private fun fetchPost(postUrl:String){
-        val postScrapWorker = OneTimeWorkRequest.Builder(PostScrapWorker::class.java)
-                .setInputData(Data.Builder()
-                        .putString("url", postUrl)
-                        .build()
-                )
-                .build()
+    private fun fetchPost(postUrl: String,cookie:String){
 
-        WorkManager.getInstance(activity!!.applicationContext).beginUniqueWork("scapPost", ExistingWorkPolicy.REPLACE, postScrapWorker).enqueue()
-        WorkManager.getInstance(activity!!.applicationContext).getWorkInfoByIdLiveData(postScrapWorker.id)
-                .observe(viewLifecycleOwner) { workInfo ->
+        mPost=Post()
+        mPost?.url = postUrl;
+        mProgressBar.progress = 100
+        mProgressBar.visibility = View.VISIBLE
+        mCardView.visibility = View.INVISIBLE
+        btPlayVideo.visibility = View.INVISIBLE
+
+     val inputData=   Data.Builder()
+                .putString("url", postUrl)
+             .putString("cookie",cookie)
+                .build()
+        val postScrapWorker = OneTimeWorkRequest.Builder(PostScrapWorker::class.java)
+                .setInputData(
+                        inputData )
+                .build()
+        val checkPostPermission = OneTimeWorkRequest.Builder(CheckPostPermission::class.java)
+                .setInputData(inputData)
+                .build()
+        if (observerCheckPostPermission==null){
+            observerCheckPostPermission= Observer {workinfo->
+                mProgressBar.visibility=View.GONE
+                if (workinfo?.state==WorkInfo.State.SUCCEEDED){
+                    try {
+                        trowPrivatePost()
+                    }catch (E: Exception){
+                        Crashlytics.recordException(E)
+                    }
+                    postIsPrivate()
+                    firebaseAnalytics?.logEvent("privatePost", null)
+
+                    Log.d(TAG,"private post")
+                }else if (workinfo?.state==WorkInfo.State.FAILED){
+
+                    val errorCode=workinfo.outputData.getInt("errorCode",-1)
+                    val errorMessage=workinfo.outputData.getString("errorMessage")
+                    val bundel=Bundle()
+                    bundel.putInt("errorCode",errorCode)
+                    firebaseAnalytics?.logEvent("event_check_post_permission_worker_fail",bundel)
+                    Crashlytics.log("fail check post permission worker")
+                    Crashlytics.log("errorCode ${errorCode}")
+                    try {
+                        throwPostScapFail()
+                    }catch (E:Exception){
+                        Crashlytics.recordException(E)
+                    }
+                   showError(errorMessage.toString())
+
+                }
+            }
+        }
+        if (observerScrapPost==null){
+            observerScrapPost= Observer {
+                 workInfo ->
                     if(workInfo?.state == WorkInfo.State.SUCCEEDED) {
-                       Log.d(TAG, "work manger done")
+
+                        Log.d(TAG, "work manger done")
                         Crashlytics.log("postScrapWorker done")
-                      val postJson=  workInfo.outputData.getString("post")
+                        val postJson=  workInfo.outputData.getString("post")
                         mPost=Gson().fromJson(postJson, Post::class.java)
                         UpdateUI()
                         Downloader()
+
+                    }else if (workInfo?.state==WorkInfo.State.FAILED){
+
+                        val errorMessage=workInfo.outputData.getString("errorMessage")
+                        val errorCode=workInfo.outputData.getInt("errorCode",-1)
+
+                        val bundel=Bundle()
+                        bundel.putInt("errorCode",errorCode)
+                        firebaseAnalytics?.logEvent("event_post_scaper_worker_fail",bundel)
+                        Crashlytics.log("fail post scaper worker")
+                        Crashlytics.log("errorCode ${errorCode}")
+
+                       if (!userCookiesSaved && errorCode== HttpURLConnection.HTTP_NOT_FOUND){
+                           WorkManager.getInstance(activity!!.applicationContext).beginUniqueWork("checkPostPermission", ExistingWorkPolicy.REPLACE, checkPostPermission).enqueue()
+                           WorkManager.getInstance(activity!!.applicationContext).getWorkInfoByIdLiveData(checkPostPermission.id).observe(viewLifecycleOwner,observerCheckPostPermission!!)
+                           showError("Page not found, checking if the post is private or not, please wait...")
+                       }else if(!userCookiesSaved && errorCode==HttpURLConnection.HTTP_UNAUTHORIZED){
+                           logInRequired()
+                           mProgressBar.visibility=View.GONE
+                       }
+                       else {
+                           try {
+                               throwPostScapFail()
+                           }catch (E:Exception){
+                               Crashlytics.recordException(E)
+                           }
+                           mProgressBar.visibility=View.GONE
+                           showError(errorMessage!!)
+                       }
                     }
                 }
+
+        }
+
+
+        WorkManager.getInstance(activity!!.applicationContext).beginUniqueWork("scapPost", ExistingWorkPolicy.REPLACE, postScrapWorker).enqueue()
+        WorkManager.getInstance(activity!!.applicationContext).getWorkInfoByIdLiveData(postScrapWorker.id)
+                .observe(viewLifecycleOwner,observerScrapPost!!)
     }
 
     private var mContext: Context? = null
@@ -633,7 +728,7 @@ class DownloadingFragment : Fragment() {
 
 
     @SuppressLint("StaticFieldLeak")
-    inner class grabData( val postUrl: String) : AsyncTask<Void, Void, String>() {
+    inner class grabData(val postUrl: String) : AsyncTask<Void, Void, String>() {
         val mHashTags = StringBuilder()
         private var isSomeThingWrong = false
         private var whatsWrong=""
@@ -828,12 +923,7 @@ class DownloadingFragment : Fragment() {
                        Toast.makeText(activity, "Unable to access to external storage ", Toast.LENGTH_LONG).show()
                    }
                }else{
-                   try{
-                       logInRequired()
-                   }catch (E:Exception){
-                       Crashlytics.recordException(E)
-                   }
-                   firebaseAnalytics?.logEvent("event_logInRequired", null);
+
                    logInRequired()
                }
 
@@ -900,11 +990,13 @@ class DownloadingFragment : Fragment() {
     }
 
     private fun  logInRequired(){
+
+        firebaseAnalytics?.logEvent("event_logInRequired", null);
         val builder: AlertDialog.Builder
 
         builder = AlertDialog.Builder(activity!!)
         builder.setTitle("Login required")
-                .setMessage("You need to login your account to downland this post, you will login your account on instagram official website we will not obtain your information in any way ")
+                .setMessage("You need to login your account to downland this post, you will login your account on instagram official website, we will not obtain your any information in any way ")
                 .setPositiveButton("Login") { dialog, which ->
                     // continue with delete
                     firebaseAnalytics?.logEvent("clickLogin", null)
@@ -916,15 +1008,15 @@ class DownloadingFragment : Fragment() {
     }
 
     private fun showError(errorMessage: String){
+
         if (isAdded && activity!=null){
             AlertDialog.Builder(activity!!)
-                    .setTitle("Error try again")
+                    .setTitle("Error")
                     .setMessage(errorMessage)
-                    .setPositiveButton("try again", DialogInterface.OnClickListener { dialogInterface, i ->
-                        if (!mEditTextInputURl.text.toString().isEmpty()) {
-                            grabData(mEditTextInputURl.text.toString()).execute()
-                        }
-                    }).create()
+                    .setPositiveButton("Ok",DialogInterface.OnClickListener { dialogInterface, i ->
+                        dialogInterface.dismiss()
+                    })
+                   .create()
                     .show()
 
         }
@@ -939,8 +1031,8 @@ class DownloadingFragment : Fragment() {
         throw CustomException("PrivatePost")
     }
 
-   private fun throwLogInRequired(){
-       throw CustomException("LoginRequired")
+   private fun throwPostScapFail(){
+       throw CustomException("PostScapFail")
    }
 
     public class CustomException : Exception {

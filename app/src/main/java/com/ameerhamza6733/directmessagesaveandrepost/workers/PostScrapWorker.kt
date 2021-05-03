@@ -1,10 +1,12 @@
-package com.ameerhamza6733.directmessagesaveandrepost
+package com.ameerhamza6733.directmessagesaveandrepost.workers
 
 import android.content.Context
 import android.util.Log
 import androidx.work.Data
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import com.ameerhamza6733.directmessagesaveandrepost.DownloadingFragment
+import com.ameerhamza6733.directmessagesaveandrepost.Post
 import com.ameerhamza6733.directmessagesaveandrepost.model.IntentModelType
 import com.ameerhamza6733.directmessagesaveandrepost.model.MediaItemType
 import com.ameerhamza6733.directmessagesaveandrepost.utils.IntentUtils
@@ -12,6 +14,7 @@ import com.ameerhamza6733.directmessagesaveandrepost.utils.NetworkUtils
 import com.ameerhamza6733.directmessagesaveandrepost.utils.ResponseBodyUtils
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.gson.Gson
+import org.json.JSONException
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -21,7 +24,9 @@ class PostScrapWorker(context: Context, workerParams: WorkerParameters) : Worker
     override fun doWork(): Result {
 
         val url = inputData.getString("url")
+        val cookie=inputData.getString("cookie")
         val model = IntentUtils.parseUrl(url!!)
+        val outPutData= Data.Builder()
         if (model == null || model.type != IntentModelType.POST) {
             return Result.failure()
         }
@@ -29,18 +34,23 @@ class PostScrapWorker(context: Context, workerParams: WorkerParameters) : Worker
         val gson = Gson()
         try {
             val connectionUrl = "https://www.instagram.com/p/" + model.text + "/?__a=1"
+            crashlytics.log("connectionUrl  $connectionUrl")
             conn = URL(connectionUrl).openConnection() as HttpURLConnection
+            conn?.setRequestProperty("Content-type", "application/json")
+            conn?.setRequestProperty("Cookie",cookie)
             conn.useCaches = false
             conn!!.connect()
             Log.d(TAG, "occented to $connectionUrl")
-            crashlytics.log("connected to $connectionUrl")
+
             crashlytics.log("response code ${conn.responseCode} ")
             if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-
-                val mediaJson = JSONObject(NetworkUtils.readFromConnection(conn)).getJSONObject("graphql")
+              val response=  NetworkUtils.readFromConnection(conn)
+                Log.d(TAG,"response ${response}")
+                crashlytics.log("response ${response}")
+                val mediaJson = JSONObject(response).getJSONObject("graphql")
                         .getJSONObject("shortcode_media")
                 val media1 = ResponseBodyUtils.parseGraphQLItem(mediaJson)
-                crashlytics.log("mediaJson ${mediaJson}")
+
                 val post = Post()
                 post.hashTags = extractHashTag(media1.caption.text)
                 post.content =media1.caption.text
@@ -64,26 +74,41 @@ class PostScrapWorker(context: Context, workerParams: WorkerParameters) : Worker
                   post.imageURL= media1.imageVersions2.candidates[0].url
                   post.medium="video";
                   post.type="video"
+              }else{
+
+                  outPutData.putInt("errorCode",1)
+                  outPutData.putString("errorMessage","No media type found")
+                  Result.failure(outPutData.build())
               }
-              post.postID=model.text
-               val outPutData= Data.Builder()
-                       .putString("post", gson.toJson(post))
-                       .build()
-                return Result.success(outPutData)
-            }else{
-               try {
-                   throwReponseFail()
-               }catch (E:Exception){
-                   crashlytics.recordException(E)
-               }
-                Result.failure()
+                   post.postID=model.text
+                 outPutData .putString("post", gson.toJson(post))
+                return Result.success(outPutData.build())
+            }else if (conn.responseCode == HttpURLConnection.HTTP_NOT_FOUND){
+                Log.d(TAG,"errorMessage ${conn?.responseMessage}")
+                outPutData.putInt("errorCode",conn.responseCode)
+                outPutData .putString("errorMessage","Sorry, this post isn't available.\n" +
+                        "The link you followed may be broken, or the post may have been removed" )
             }
-        } catch (e: Exception) {
+            else {
+                Log.d(TAG,"error code ${conn?.responseCode}")
+                outPutData.putInt("errorCode",conn.responseCode)
+                outPutData .putString("errorMessage", conn?.responseMessage)
+            }
+        }catch (jsonEx : JSONException){
+            outPutData.putInt("errorCode",HttpURLConnection.HTTP_UNAUTHORIZED)
+            outPutData .putString("errorMessage",jsonEx.localizedMessage )
+            jsonEx.printStackTrace()
+            crashlytics.recordException(jsonEx)
+        }
+        catch (e: Exception) {
+            outPutData.putInt("errorCode",-1)
+            outPutData .putString("errorMessage", e.message)
+            e.printStackTrace()
             crashlytics.recordException(e)
         } finally {
             conn?.disconnect()
         }
-        return Result.failure()
+        return Result.failure(outPutData.build())
     }
 
     private fun extractHashTag(caption: String?): StringBuilder {

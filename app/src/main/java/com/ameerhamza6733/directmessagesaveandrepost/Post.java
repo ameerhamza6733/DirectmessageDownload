@@ -70,7 +70,7 @@ public class Post {
     public String getVideoURL() {
         return videoURL;
     }
-    StringBuilder getHashTags() {
+    public StringBuilder getHashTags() {
         return hashTags;
     }
 
